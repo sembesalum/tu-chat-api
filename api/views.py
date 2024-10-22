@@ -1,4 +1,5 @@
 from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
@@ -12,19 +13,48 @@ from .serializers import (UniversitySerializer, CampusSerializer, CourseSerializ
 
 # User registration view
 class RegisterUser(APIView):
+    permission_classes = [AllowAny]  # Allow public access for registration
     def post(self, request):
+        # Extract the university, campus, and course from the request data
+        university_id = request.data.get('university_id')
+        campus_id = request.data.get('campus_id')
+        course_id = request.data.get('course_id')
+
+        # Validate if the university, campus, and course exist
+        try:
+            university = University.objects.get(id=university_id)
+            campus = Campus.objects.get(id=campus_id)
+            course = Course.objects.get(id=course_id)
+        except (University.DoesNotExist, Campus.DoesNotExist, Course.DoesNotExist):
+            return Response({'error': 'Invalid university, campus, or course selection'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create the user
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            # Create the token for the user
             token, created = Token.objects.get_or_create(user=user)
-            return Response({'token': token.key}, status=status.HTTP_201_CREATED)
+
+            # Create a UserProfile and associate it with the user
+            UserProfile.objects.create(
+                user=user,
+                university=university,
+                campus=campus,
+                course=course,
+                phone_number=request.data.get('phone_number')
+            )
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # Login view
 class LoginUser(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
+        
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
@@ -32,31 +62,45 @@ class LoginUser(APIView):
 
         if user.check_password(password):
             token, created = Token.objects.get_or_create(user=user)
-            return Response({'token': token.key}, status=status.HTTP_200_OK)
+
+            
+            user_info = {
+                'token': token.key,
+                'username': user.username,
+                'email': user.email,
+            }
+            
+            return Response(user_info, status=status.HTTP_200_OK)
+
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
 
-# Fetch university data
+
+# Fetch university data (public access)
 class UniversityList(APIView):
+    permission_classes = [AllowAny]  # Public access allowed
+
     def get(self, request):
         universities = University.objects.all()
         serializer = UniversitySerializer(universities, many=True)
         return Response(serializer.data)
 
-# Fetch campus data based on university
+# Fetch campus data based on university (public access)
 class CampusList(APIView):
+    permission_classes = [AllowAny]  # Public access allowed
+
     def get(self, request, university_id):
         campuses = Campus.objects.filter(university_id=university_id)
         serializer = CampusSerializer(campuses, many=True)
         return Response(serializer.data)
 
-# Fetch course data based on campus
+# Fetch course data based on campus (public access)
 class CourseList(APIView):
+    permission_classes = [AllowAny]  # Public access allowed
+
     def get(self, request, university_id, campus_id):
         courses = Course.objects.filter(university_id=university_id, campus_id=campus_id)
         serializer = CourseSerializer(courses, many=True)
         return Response(serializer.data)
-
-
 # Add materials (admin only)
 class AddMaterial(APIView):
     permission_classes = [IsAuthenticated]
