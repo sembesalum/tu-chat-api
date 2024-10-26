@@ -13,29 +13,29 @@ from .serializers import (UniversitySerializer, CampusSerializer, CourseSerializ
 
 # User registration view
 class RegisterUser(APIView):
-    permission_classes = [AllowAny]  # Allow public access for registration
+    permission_classes = [AllowAny]
+
     def post(self, request):
-        # Extract the university, campus, and course from the request data
-        university_id = request.data.get('university_id')
-        campus_id = request.data.get('campus_id')
-        course_id = request.data.get('course_id')
+        university_name = request.data.get('university_name')
+        campus_name = request.data.get('campus_name')
+        course_name = request.data.get('course_name')
 
-        # Validate if the university, campus, and course exist
         try:
-            university = University.objects.get(id=university_id)
-            campus = Campus.objects.get(id=campus_id)
-            course = Course.objects.get(id=course_id)
-        except (University.DoesNotExist, Campus.DoesNotExist, Course.DoesNotExist):
-            return Response({'error': 'Invalid university, campus, or course selection'}, status=status.HTTP_400_BAD_REQUEST)
+            university = University.objects.get(name=university_name)
+            campus = Campus.objects.get(name=campus_name, university=university)
+            course = Course.objects.get(name=course_name, campus=campus, university=university)
+        except University.DoesNotExist:
+            return Response({'error': 'Invalid university selection'}, status=status.HTTP_400_BAD_REQUEST)
+        except Campus.DoesNotExist:
+            return Response({'error': 'Invalid campus selection'}, status=status.HTTP_400_BAD_REQUEST)
+        except Course.DoesNotExist:
+            return Response({'error': 'Invalid course selection'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Create the user
+        # Create the user using the serializer
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            # Create the token for the user
             token, created = Token.objects.get_or_create(user=user)
-
-            # Create a UserProfile and associate it with the user
             UserProfile.objects.create(
                 user=user,
                 university=university,
@@ -43,8 +43,10 @@ class RegisterUser(APIView):
                 course=course,
                 phone_number=request.data.get('phone_number')
             )
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'token': token.key, 'email': user.email}, status=status.HTTP_201_CREATED)
+        
+        # Return validation errors for debugging
+        return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # Login view
@@ -63,16 +65,34 @@ class LoginUser(APIView):
         if user.check_password(password):
             token, created = Token.objects.get_or_create(user=user)
 
-            
-            user_info = {
+            try:
+                # Get the user's profile and serialize it
+                profile = UserProfile.objects.get(user=user)
+                profile_serializer = UserProfileSerializer(profile)
+            except UserProfile.DoesNotExist:
+                return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+            # Combine the user info and profile info
+            response_data = {
                 'token': token.key,
-                'username': user.username,
-                'email': user.email,
+                'profile': profile_serializer.data
             }
-            
-            return Response(user_info, status=status.HTTP_200_OK)
+
+            return Response(response_data, status=status.HTTP_200_OK)
 
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+
+# Logout view
+class LogoutUser(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure only authenticated users can log out
+
+    def post(self, request):
+        try:
+            # Get the user's token
+            request.user.auth_token.delete()  # Delete the user's token
+            return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
+        except:
+            return Response({"error": "Something went wrong"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # Fetch university data (public access)
@@ -88,8 +108,8 @@ class UniversityList(APIView):
 class CampusList(APIView):
     permission_classes = [AllowAny]  # Public access allowed
 
-    def get(self, request, university_id):
-        campuses = Campus.objects.filter(university_id=university_id)
+    def get(self, request):
+        campuses = Campus.objects.all()
         serializer = CampusSerializer(campuses, many=True)
         return Response(serializer.data)
 
@@ -97,8 +117,8 @@ class CampusList(APIView):
 class CourseList(APIView):
     permission_classes = [AllowAny]  # Public access allowed
 
-    def get(self, request, university_id, campus_id):
-        courses = Course.objects.filter(university_id=university_id, campus_id=campus_id)
+    def get(self, request):
+        courses = Course.objects.all()
         serializer = CourseSerializer(courses, many=True)
         return Response(serializer.data)
 # Add materials (admin only)
@@ -111,12 +131,21 @@ class AddMaterial(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Fetch materials based on university, campus, and course
 class MaterialList(APIView):
-    def get(self, request, university_id, campus_id, course_id):
-        materials = Material.objects.filter(university_id=university_id, campus_id=campus_id, course_id=course_id)
+    permission_classes= [AllowAny]
+    def get(self, request, university_id, campus_id, course_id, material_type=None):
+        # Filter materials based on university, campus, course, and optionally material type
+        materials = Material.objects.filter(
+            university_id=university_id,
+            campus_id=campus_id,
+            course_id=course_id
+        )
+        if material_type:
+            materials = materials.filter(material_type=material_type)
+
         serializer = MaterialSerializer(materials, many=True)
         return Response(serializer.data)
+
 
 # Add and list events
 class EventList(APIView):
@@ -145,3 +174,15 @@ class BlogList(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            # Retrieve the user profile for the authenticated user
+            profile = UserProfile.objects.all()
+            serializer = UserProfileSerializer(profile)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except UserProfile.DoesNotExist:
+            return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)

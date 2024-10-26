@@ -35,23 +35,40 @@ class BlogSerializer(serializers.ModelSerializer):
     class Meta:
         model = Blog
         fields = '__all__'
-
+        
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'password']
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ['email', 'password']  # Only include email and password
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
 
     def create(self, validated_data):
-        user = User(
-            email=validated_data['email'],
-            username=validated_data['username']
-        )
-        user.set_password(validated_data['password'])
-        user.save()
+        email = validated_data['email']
+        password = validated_data['password']
+        
+        # Generate a username based on the email if needed
+        username = email.split('@')[0]  # Generate username from email
+
+        # Create the user
+        user = User.objects.create_user(username=username, email=email, password=password)
         return user
 
+
 class UserProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+    university = serializers.CharField(source='university.name', read_only=True)
+    university_id = serializers.IntegerField(source='university.id', read_only=True)
+    campus = serializers.CharField(source='campus.name', read_only=True)
+    campus_id = serializers.IntegerField(source='campus.id', read_only=True)
+    course = serializers.CharField(source='course.name', read_only=True)
+    course_id = serializers.IntegerField(source='course.id', read_only=True)
+
     class Meta:
         model = UserProfile
-        fields = '__all__'
+        fields = [
+            'username', 'email', 'phone_number', 'university', 'university_id', 
+            'campus', 'campus_id', 'course', 'course_id'
+        ]

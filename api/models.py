@@ -27,15 +27,17 @@ class Course(models.Model):
 class Material(models.Model):
     MATERIAL_TYPE_CHOICES = [
         ('past_paper', 'Past Paper'),
-        ('note', 'Note'),
+        ('notes', 'Notes'),
         ('research', 'Research'),
         ('timetable', 'Timetable'),
-        ('quiz', 'Quiz'),
+        ('report', 'Report'),
     ]
     university = models.ForeignKey(University, on_delete=models.CASCADE)
     campus = models.ForeignKey(Campus, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     material_type = models.CharField(max_length=50, choices=MATERIAL_TYPE_CHOICES)
+    title = models.CharField(max_length=255, null=True)
+    subtitle = models.CharField(max_length=255, null=True)
     file = models.FileField(upload_to='materials/')
 
 class Event(models.Model):
