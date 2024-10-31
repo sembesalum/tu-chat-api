@@ -2,14 +2,15 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import generics, permissions
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from rest_framework import status
-from .models import University, Campus, Course, Material, Event, Blog, UserProfile
+from .models import University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
 from .serializers import (UniversitySerializer, CampusSerializer, CourseSerializer, 
                           MaterialSerializer, EventSerializer, BlogSerializer, 
-                          UserSerializer, UserProfileSerializer)
+                          UserSerializer, UserProfileSerializer,MessageSerializer, CommunitySerializer, GroupSerializer, UserGroupSerializer)
 
 # User registration view
 class RegisterUser(APIView):
@@ -132,7 +133,8 @@ class AddMaterial(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class MaterialList(APIView):
-    permission_classes= [AllowAny]
+    permission_classes = [AllowAny]
+
     def get(self, request, university_id, campus_id, course_id, material_type=None):
         # Filter materials based on university, campus, course, and optionally material type
         materials = Material.objects.filter(
@@ -140,22 +142,51 @@ class MaterialList(APIView):
             campus_id=campus_id,
             course_id=course_id
         )
+
         if material_type:
             materials = materials.filter(material_type=material_type)
 
-        serializer = MaterialSerializer(materials, many=True)
-        return Response(serializer.data)
+        # Create a list to store the serialized materials with URLs
+        materials_with_urls = []
+        
+        for material in materials:
+            # Check if material.file is not None
+            if material.file:
+                material.file_url = request.build_absolute_uri(material.file.url)
+            else:
+                material.file_url = None  # Handle cases where file is not present
+
+            # Append the serialized data to the new list
+            materials_with_urls.append({
+                'id': material.id,
+                'title': material.title,  # Add any other fields you want
+                'subtitle': material.subtitle,
+                'file_url': material.file_url,
+                'material_type': material.material_type,
+                # Add other fields from Material model as necessary
+            })
+
+        return Response(materials_with_urls)
+
+
 
 
 # Add and list events
 class EventList(APIView):
-    def get(self, request):
-        events = Event.objects.all()
-        serializer = EventSerializer(events, many=True)
+    permission_classes = [AllowAny]
+
+    def get(self, request, university_id=None):
+        # Check if university_id is provided; if not, return all events
+        if university_id:
+            events = Event.objects.filter(university_id=university_id)
+        else:
+            events = Event.objects.all()
+
+        serializer = EventSerializer(events, many=True, context={'request': request})
         return Response(serializer.data)
 
     def post(self, request):
-        serializer = EventSerializer(data=request.data)
+        serializer = EventSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -163,13 +194,20 @@ class EventList(APIView):
 
 # Add blogs and fetch blog posts
 class BlogList(APIView):
-    def get(self, request):
-        blogs = Blog.objects.all()
-        serializer = BlogSerializer(blogs, many=True)
+    permission_classes = [AllowAny]
+
+    def get(self, request, university_id=None):
+        # Check if university_id is provided; if not, return all events
+        if university_id:
+            blogs = Blog.objects.filter(university_id=university_id)
+        else:
+            blogs = Blog.objects.all()
+
+        serializer = EventSerializer(blogs, many=True, context={'request': request})
         return Response(serializer.data)
 
     def post(self, request):
-        serializer = BlogSerializer(data=request.data)
+        serializer = BlogSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -186,3 +224,84 @@ class UserProfileView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         except UserProfile.DoesNotExist:
             return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+# Messaging
+class CreateMessageView(generics.CreateAPIView):
+    queryset = Message.objects.all()
+    serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class MessageListView(generics.ListAPIView):
+    serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        receiver_id = self.kwargs['receiver_id']
+        return Message.objects.filter(receiver_id=receiver_id)
+
+# Community
+class CreateCommunityView(generics.CreateAPIView):
+    queryset = Community.objects.all()
+    serializer_class = CommunitySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class CommunityListView(generics.ListAPIView):
+    queryset = Community.objects.all()
+    serializer_class = CommunitySerializer
+    permission_classes = [permissions.AllowAny]
+
+# Groups
+class CreateGroupView(generics.CreateAPIView):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class GroupListView(generics.ListAPIView):
+    serializer_class = GroupSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        community_id = self.kwargs.get('community_id')
+        if community_id:
+            return Group.objects.filter(community_id=community_id)
+        return Group.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        groups = self.get_queryset()
+        serializer = self.get_serializer(groups, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# User Group Management
+class JoinGroupView(generics.CreateAPIView):
+    queryset = UserGroup.objects.all()
+    serializer_class = UserGroupSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class LeaveGroupView(generics.DestroyAPIView):
+    queryset = UserGroup.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        user = self.request.user
+        group_id = self.kwargs['group_id']
+        return UserGroup.objects.get(user=user, group__id=group_id)
+
+class PromoteUserView(generics.UpdateAPIView):
+    queryset = UserGroup.objects.all()
+    serializer_class = UserGroupSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_update(self, serializer):
+        serializer.save(is_admin=True)
+        
+class MarkMessageAsReadView(generics.UpdateAPIView):
+    queryset = Message.objects.all()
+    serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_update(self, serializer):
+        serializer.save(read=True)

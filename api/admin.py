@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import University, Campus, Course, Material, Event, Blog, UserProfile
+from .models import University, Campus, Course, Material, Event, Blog, UserProfile, Community, Group, UserGroup
 
 # Customize how University is displayed in admin
 @admin.register(University)
@@ -35,9 +35,9 @@ class MaterialAdmin(admin.ModelAdmin):
 # Customize how Event is displayed in admin
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ('title', 'university', 'campus', 'date', 'time', 'is_breaking_news')  # Show event fields
+    list_display = ('title', 'university',  'date', 'time', 'is_breaking_news')  # Show event fields
     search_fields = ('title', 'university__name', 'campus__name')  # Add search
-    list_filter = ('is_breaking_news', 'university', 'campus')  # Add filters
+    list_filter = ('is_breaking_news', 'university')  # Add filters
 
 # Customize how Blog is displayed in admin
 @admin.register(Blog)
@@ -52,3 +52,19 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'university', 'campus', 'course', 'phone_number')  # Show user profile fields
     search_fields = ('user__username', 'university__name', 'campus__name', 'course__name')  # Add search
     list_filter = ('university', 'campus', 'course')  # Add filters
+
+@admin.register(Community)
+class CommunityAdmin(admin.ModelAdmin):
+    list_display = ('name', 'admin')
+    search_fields = ('name',)
+
+@admin.register(Group)
+class GroupAdmin(admin.ModelAdmin):
+    list_display = ('name', 'community')
+    list_filter = ('community',)
+
+@admin.register(UserGroup)
+class UserGroupAdmin(admin.ModelAdmin):
+    list_display = ('user', 'group', 'is_admin')
+    list_filter = ('group',)
+    search_fields = ('user__username',)
