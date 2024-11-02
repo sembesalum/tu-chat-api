@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-uwf!$!@qgcx2pol!ycfy(_k8i1!5)txkht2ky%l^()np$su9f^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['salumsembe.pythonanywhere.com']
 
 
 # Application definition
@@ -155,7 +155,7 @@ CORS_EXPOSE_HEADERS = ['Authorization']
 CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:8000',
-    'university_backend.urls'
+    'salumsembe.pythonanywhere.com'
 ]
 
 STORAGES = {
