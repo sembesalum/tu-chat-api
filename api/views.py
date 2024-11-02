@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -229,15 +230,15 @@ class UserProfileView(APIView):
 class CreateMessageView(generics.CreateAPIView):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
 class MessageListView(generics.ListAPIView):
     serializer_class = MessageSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        receiver_id = self.kwargs['receiver_id']
-        return Message.objects.filter(receiver_id=receiver_id)
+        group_id = self.kwargs['group_id']
+        return Message.objects.filter(group_id=group_id)
 
 # Community
 class CreateCommunityView(generics.CreateAPIView):
@@ -305,3 +306,24 @@ class MarkMessageAsReadView(generics.UpdateAPIView):
 
     def perform_update(self, serializer):
         serializer.save(read=True)
+        
+class SendMessageView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, group_id):
+        # Check if the group exists
+        group = get_object_or_404(Group, id=group_id)
+
+        # Prepare the message data
+        content = request.data.get('content')
+
+        if not content:
+            return Response({'error': 'Content is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create the message
+        message = Message(sender=request.user, group=group, content=content)
+        message.save()
+
+        # Serialize the response
+        serializer = MessageSerializer(message)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

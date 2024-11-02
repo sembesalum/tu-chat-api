@@ -46,15 +46,18 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    
 ]
+
+
 
 ROOT_URLCONF = 'university_backend.urls'
 
@@ -138,11 +141,14 @@ REST_FRAMEWORK = {
     ],
 }
 
+
 # settings.py
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'materials'  # Ensure 'media' folder exists in your project root
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_EXPOSE_HEADERS = ['Authorization']
 
 CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:8000',

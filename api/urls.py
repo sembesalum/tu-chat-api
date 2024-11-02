@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (LogoutUser, RegisterUser, LoginUser, UniversityList, CampusList, CourseList, 
+from .views import (LogoutUser, RegisterUser, LoginUser, SendMessageView, UniversityList, CampusList, CourseList, 
                     AddMaterial, MaterialList, EventList, BlogList, UserProfileView,CreateMessageView,
     MessageListView,
     CreateCommunityView,
@@ -30,8 +30,8 @@ urlpatterns = [
     path('blogs/<int:university_id>', BlogList.as_view(), name='blogs'),
     
      # Messaging
-    path('messages/send/', CreateMessageView.as_view(), name='send-message'),
-    path('messages/<int:receiver_id>/', MessageListView.as_view(), name='message-list'),
+    path('groups/<int:group_id>/messages/send/', SendMessageView.as_view(), name='send_message'),
+    path('groups/<int:group_id>/messages/', MessageListView.as_view(), name='message-list'),
 
     # Community
     path('communities/create/', CreateCommunityView.as_view(), name='create-community'),
