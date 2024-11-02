@@ -67,6 +67,12 @@ class Blog(models.Model):
     content = models.TextField()
     image = models.ImageField(upload_to='blogs/')
     is_breaking_news = models.BooleanField(default=False)
+    university = models.ForeignKey(
+        'University', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True
+    )
     # created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
