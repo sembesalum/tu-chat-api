@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-uwf!$!@qgcx2pol!ycfy(_k8i1!5)txkht2ky%l^()np$su9f^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['https://salumsembe.pythonanywhere.com']
+ALLOWED_HOSTS = ['salumsembe.pythonanywhere.com']
 
 
 # Application definition
