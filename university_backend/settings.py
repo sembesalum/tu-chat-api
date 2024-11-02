@@ -169,7 +169,7 @@ STORAGES = {
     'default': {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
         'OPTIONS': {
-            'location': '/path/to/materials/root',  # adjust this path to your media folder
+            'location': 'materials/'  
         },
     },
     'staticfiles': {
