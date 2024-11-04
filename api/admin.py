@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import University, Campus, Course, Material, Event, Blog, UserProfile, Community, Group, UserGroup
+from .models import University, Campus, Course, Material, Event, Blog, UserProfile, Community, Group, UserGroup, RequestEvent
 
 # Customize how University is displayed in admin
 @admin.register(University)
@@ -68,3 +68,7 @@ class UserGroupAdmin(admin.ModelAdmin):
     list_display = ('user', 'group', 'is_admin')
     list_filter = ('group',)
     search_fields = ('user__username',)
+    
+@admin.register(RequestEvent)
+class UserEvents(admin.ModelAdmin):
+    list_display = ('title', 'description', 'phone_number', 'date', 'time',  'image1', 'image2')

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.conf import settings
 
 class University(models.Model):
     name = models.CharField(max_length=255)
@@ -59,6 +60,33 @@ class Event(models.Model):
 
     # campus = models.ForeignKey(Campus, on_delete=models.CASCADE)
     # course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    
+class RequestEvent(models.Model):
+    title = models.CharField(max_length=255, null=True, blank=True)
+    description = models.TextField(max_length=1000, null=True, blank=True)
+    phone_number = models.CharField(max_length=255, null=True, blank=True)
+    time = models.TimeField(null=True, blank=True)
+    date = models.DateField(null=True, blank=True)
+    image1 = models.ImageField(upload_to='events/', null=True, blank=True)
+    image2 = models.ImageField(upload_to='events/', null=True, blank=True)
+
+    def __str__(self):
+        return self.title or "Unnamed Event"
+
+    def image1_link(self):
+        if self.image1:
+            return f"<a href='{self.image1.url}' download>Download Image 1</a>"
+        return "No Image"
+
+    def image2_link(self):
+        if self.image2:
+            return f"<a href='{self.image2.url}' download>Download Image 2</a>"
+        return "No Image"
+
+    image1_link.allow_tags = True
+    image1_link.short_description = "Image 1"
+    image2_link.allow_tags = True
+    image2_link.short_description = "Image 2"
 
 class Blog(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -119,7 +147,8 @@ class Group(models.Model):
 
 
 class Message(models.Model):
-    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    # sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="messages", null=True)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)

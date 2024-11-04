@@ -308,7 +308,7 @@ class MarkMessageAsReadView(generics.UpdateAPIView):
         serializer.save(read=True)
         
 class SendMessageView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request, group_id):
         # Check if the group exists
@@ -316,14 +316,17 @@ class SendMessageView(APIView):
 
         # Prepare the message data
         content = request.data.get('content')
-
         if not content:
             return Response({'error': 'Content is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Use None if user is anonymous or the actual user if authenticated
+        sender = request.user if request.user.is_authenticated else None
+
         # Create the message
-        message = Message(sender=request.user, group=group, content=content)
+        message = Message(sender=sender, group=group, content=content)
         message.save()
 
         # Serialize the response
         serializer = MessageSerializer(message)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
