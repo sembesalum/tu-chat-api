@@ -93,7 +93,7 @@ class Blog(models.Model):
     title = models.CharField(max_length=255)
     date = models.DateField(null=True, blank=True)
     content = models.TextField()
-    image = models.ImageField(upload_to='blogs/')
+    image = models.ImageField(upload_to='blogs/', null=True, blank=True)
     is_breaking_news = models.BooleanField(default=False)
     university = models.ForeignKey(
         'University', 
@@ -147,15 +147,14 @@ class Group(models.Model):
 
 
 class Message(models.Model):
-    # sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
-    sender = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    sender = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="messages", null=True)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     read = models.BooleanField(default=False)  # Add this line
 
     def __str__(self):
-        return f"{self.sender.username} to {self.receiver.username}: {self.content}"
+        return f"{self.sender.username} to {self.receiver.username}: {self.content}" or "Unknown"
 
 
 

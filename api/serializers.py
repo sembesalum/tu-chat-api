@@ -98,7 +98,7 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ['id', 'sender', 'group', 'content', 'timestamp', 'read']
-        read_only_fields = ['id', 'sender', 'timestamp', 'read']  # sender is set in the view
+        read_only_fields = ['id', 'sender', 'timestamp', 'read', 'content']  # sender is set in the view
 
 
 class CommunitySerializer(serializers.ModelSerializer):
