@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
+from .models import Leaders, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
 
 class UniversitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -47,6 +47,7 @@ class EventSerializer(serializers.ModelSerializer):
         return None
 
 class BlogSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
     class Meta:
         model = Blog
         fields = ['id', 'title', 'author', 'description', 'date', 'image_url', 'is_breaking_news', 'university_id']
@@ -56,6 +57,16 @@ class BlogSerializer(serializers.ModelSerializer):
         if obj.image and request:
             return request.build_absolute_uri(obj.image.url)
         return None
+    
+# class BlogSerializer(serializers.ModelSerializer):
+#     image_url = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = Blog
+#         fields = ['id', 'title', 'author', 'description', 'date', 'image_url', 'is_breaking_news', 'university_id']
+
+#     def get_image_url(self, obj):
+#         return obj.image  # Simply return the URL since it's already a string
         
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -117,3 +128,15 @@ class UserGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserGroup
         fields = ['id', 'user', 'group', 'is_admin']
+        
+class LeadersSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+    class Meta:
+        model = Leaders
+        fields = ['names', 'title', 'image']
+        
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+        return None

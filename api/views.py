@@ -1,3 +1,5 @@
+from django.db import IntegrityError
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
@@ -8,10 +10,10 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from rest_framework import status
-from .models import University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
+from .models import Leaders, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
 from .serializers import (UniversitySerializer, CampusSerializer, CourseSerializer, 
                           MaterialSerializer, EventSerializer, BlogSerializer, 
-                          UserSerializer, UserProfileSerializer,MessageSerializer, CommunitySerializer, GroupSerializer, UserGroupSerializer)
+                          UserSerializer, UserProfileSerializer,MessageSerializer, CommunitySerializer, GroupSerializer, UserGroupSerializer, LeadersSerializer)
 
 # User registration view
 class RegisterUser(APIView):
@@ -22,6 +24,7 @@ class RegisterUser(APIView):
         campus_name = request.data.get('campus_name')
         course_name = request.data.get('course_name')
 
+        # Retrieve university, campus, and course
         try:
             university = University.objects.get(name=university_name)
             campus = Campus.objects.get(name=campus_name, university=university)
@@ -33,21 +36,30 @@ class RegisterUser(APIView):
         except Course.DoesNotExist:
             return Response({'error': 'Invalid course selection'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Check for existing username and email
+        if User.objects.filter(username=request.data.get('username')).exists():
+            return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
+        if User.objects.filter(email=request.data.get('email')).exists():
+            return Response({'error': 'Email already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
         # Create the user using the serializer
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
-            token, created = Token.objects.get_or_create(user=user)
-            UserProfile.objects.create(
-                user=user,
-                university=university,
-                campus=campus,
-                course=course,
-                phone_number=request.data.get('phone_number')
-            )
-            return Response({'token': token.key, 'email': user.email}, status=status.HTTP_201_CREATED)
+            try:
+                user = serializer.save()
+                token, created = Token.objects.get_or_create(user=user)
+                UserProfile.objects.create(
+                    user=user,
+                    university=university,
+                    campus=campus,
+                    course=course,
+                    phone_number=request.data.get('phone_number')
+                )
+                return Response({'token': token.key, 'email': user.email}, status=status.HTTP_201_CREATED)
+            except IntegrityError:
+                return Response({'error': 'Username or email already exists'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Return validation errors for debugging
+        # Return validation errors
         return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -64,9 +76,9 @@ class LoginUser(APIView):
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Verify password
         if user.check_password(password):
             token, created = Token.objects.get_or_create(user=user)
-
             try:
                 # Get the user's profile and serialize it
                 profile = UserProfile.objects.get(user=user)
@@ -74,7 +86,7 @@ class LoginUser(APIView):
             except UserProfile.DoesNotExist:
                 return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
-            # Combine the user info and profile info
+            # Combine user and profile info in response
             response_data = {
                 'token': token.key,
                 'profile': profile_serializer.data
@@ -83,7 +95,6 @@ class LoginUser(APIView):
             return Response(response_data, status=status.HTTP_200_OK)
 
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
-
 # Logout view
 class LogoutUser(APIView):
     permission_classes = [IsAuthenticated]  # Ensure only authenticated users can log out
@@ -330,3 +341,22 @@ class SendMessageView(APIView):
         serializer = MessageSerializer(message)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+class LeadersView(APIView):
+    def get(self, request, university_id, campus_id):
+        try:
+            # Filter leaders by university_id and campus_id
+            leaders = Leaders.objects.filter(university_id=university_id, campus_id=campus_id)
+            if leaders.exists():
+                leaders_data = [
+                    {
+                        "names": leader.names,
+                        "title": leader.title,
+                        "image": leader.image.url if leader.image else '',
+                    }
+                    for leader in leaders
+                ]
+                return JsonResponse(leaders_data, safe=False, status=200)
+            else:
+                return JsonResponse({"message": "No leaders found for the specified university and campus."}, status=404)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)

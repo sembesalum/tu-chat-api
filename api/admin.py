@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import University, Campus, Course, Material, Event, Blog, UserProfile, Community, Group, UserGroup, RequestEvent, Message
+from .models import University, Campus, Course, Material, Event, Blog, UserProfile, Community, Group, UserGroup, RequestEvent, Message, Leaders
 
 # Customize how University is displayed in admin
 @admin.register(University)
@@ -76,3 +76,7 @@ class UserEvents(admin.ModelAdmin):
 @admin.register(Message)
 class UserMessages(admin.ModelAdmin):
     list_display = ('group', 'content', 'timestamp', 'read')
+    
+@admin.register(Leaders)
+class UniversityLeaders(admin.ModelAdmin):
+    list_display = ('names', 'title', 'image', 'university', 'campus')

@@ -47,6 +47,7 @@ class Event(models.Model):
     time = models.TimeField(null=True, blank=True)
     date = models.DateField(null=True, blank=True)
     image = models.ImageField(upload_to='events/', null=True, blank=True)
+    # image = models.URLField(max_length=200, null=True, blank=True)
     is_breaking_news = models.BooleanField(default=False)
     university = models.ForeignKey(
         'University', 
@@ -94,6 +95,7 @@ class Blog(models.Model):
     date = models.DateField(null=True, blank=True)
     content = models.TextField()
     image = models.ImageField(upload_to='blogs/', null=True, blank=True)
+    # image = models.URLField(max_length=200, null=True, blank=True)
     is_breaking_news = models.BooleanField(default=False)
     university = models.ForeignKey(
         'University', 
@@ -113,7 +115,8 @@ class UserProfile(models.Model):
     campus = models.ForeignKey(Campus, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     phone_number = models.CharField(max_length=15)
-    profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)  # Fixed typo
+    # profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)  # Fixed typo
+    profile_picture = models.URLField(max_length=200, null=True, blank=True)
 
     def __str__(self):
         return self.user.username
@@ -153,8 +156,8 @@ class Message(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     read = models.BooleanField(default=False)  # Add this line
 
-    def __str__(self):
-        return f"{self.sender.username} to {self.receiver.username}: {self.content}" or "Unknown"
+    # def __str__(self):
+    #     return f"{self.sender.sender} to {self.receiver.username}: {self.content}" or "Unknown"
 
 
 
@@ -168,3 +171,15 @@ class UserGroup(models.Model):
 
     def __str__(self):
         return f"{self.user.username} in {self.group.name}"
+
+
+class Leaders(models.Model):
+    names = models.CharField(max_length=255, null=True, blank=True)
+    title = models.CharField(max_length=255, null=True, blank=True)
+    image = models.ImageField(upload_to='leaders/', null=True, blank=True)
+    # image = models.URLField(max_length=200, null=True, blank=True)
+    university = models.ForeignKey(University, on_delete=models.CASCADE)
+    campus = models.ForeignKey(Campus, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.names or "Unnamed Leader"

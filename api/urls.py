@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (LogoutUser, RegisterUser, LoginUser, SendMessageView, UniversityList, CampusList, CourseList, 
+from .views import (LeadersView, LogoutUser, RegisterUser, LoginUser, SendMessageView, UniversityList, CampusList, CourseList, 
                     AddMaterial, MaterialList, EventList, BlogList, UserProfileView,CreateMessageView,
     MessageListView,
     CreateCommunityView,
@@ -47,4 +47,7 @@ urlpatterns = [
     path('groups/promote/<int:user_id>/<int:group_id>/', PromoteUserView.as_view(), name='promote-user'),
     
     path('messages/mark-as-read/<int:message_id>/', MarkMessageAsReadView.as_view(), name='mark-message-as-read'),
+    
+    # List leaders
+     path('leaders/<int:university_id>/<int:campus_id>/', LeadersView.as_view(), name='leaders'),
 ]
