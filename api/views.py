@@ -53,7 +53,8 @@ class RegisterUser(APIView):
                     university=university,
                     campus=campus,
                     course=course,
-                    phone_number=request.data.get('phone_number')
+                    phone_number=request.data.get('phone_number'),
+                    username = request.data.get('username')
                 )
                 return Response({'token': token.key, 'email': user.email}, status=status.HTTP_201_CREATED)
             except IntegrityError:
@@ -211,11 +212,11 @@ class BlogList(APIView):
     def get(self, request, university_id=None):
         # Check if university_id is provided; if not, return all events
         if university_id:
-            blogs = Blog.objects.filter(university_id=university_id)
+            blogs = Blog.objects.filter(university_id=university_id, is_breaking_news=True)
         else:
             blogs = Blog.objects.all()
 
-        serializer = EventSerializer(blogs, many=True, context={'request': request})
+        serializer = BlogSerializer(blogs, many=True, context={'request': request})
         return Response(serializer.data)
 
     def post(self, request):
@@ -351,7 +352,7 @@ class LeadersView(APIView):
                     {
                         "names": leader.names,
                         "title": leader.title,
-                        "image": leader.image.url if leader.image else '',
+                        "image": request.build_absolute_uri(leader.image.url) if leader.image else '',
                     }
                     for leader in leaders
                 ]
@@ -360,3 +361,4 @@ class LeadersView(APIView):
                 return JsonResponse({"message": "No leaders found for the specified university and campus."}, status=404)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
+

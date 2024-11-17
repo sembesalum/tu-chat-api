@@ -49,7 +49,7 @@ class BlogAdmin(admin.ModelAdmin):
 # Customize how UserProfile is displayed in admin
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'university', 'campus', 'course', 'phone_number')  # Show user profile fields
+    list_display = ('username', 'university', 'campus', 'course', 'phone_number')  # Show user profile fields
     search_fields = ('user__username', 'university__name', 'campus__name', 'course__name')  # Add search
     list_filter = ('university', 'campus', 'course')  # Add filters
 

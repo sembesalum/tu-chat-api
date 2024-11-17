@@ -111,6 +111,7 @@ class Blog(models.Model):
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    username = models.CharField(max_length=255, null=True, blank=True)
     university = models.ForeignKey(University, on_delete=models.CASCADE)
     campus = models.ForeignKey(Campus, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
@@ -119,7 +120,7 @@ class UserProfile(models.Model):
     profile_picture = models.URLField(max_length=200, null=True, blank=True)
 
     def __str__(self):
-        return self.user.username
+        return self.user.email
     
 class Community(models.Model):
     name = models.CharField(max_length=255)
