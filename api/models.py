@@ -184,3 +184,36 @@ class Leaders(models.Model):
 
     def __str__(self):
         return self.names or "Unnamed Leader"
+    
+class Product(models.Model):
+    PRODUCT_TYPE_CHOICES = [
+        ('mobile', 'Mobile'),
+        ('sport', 'Sport'),
+        ('fashion', 'Fashion'),
+        ('lifestyle', 'Lifestyle'),
+        ('computer', 'Computer'),
+        ('elecronics', 'Electronics'),
+        ('other', 'Other'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    material_type = models.CharField(max_length=50, choices=PRODUCT_TYPE_CHOICES)
+    title = models.CharField(max_length=255, null=True)
+    feature1 = models.CharField(max_length=255, null=True, blank=True)
+    feature2 = models.CharField(max_length=255, null=True, blank=True)
+    feature3 = models.CharField(max_length=255, null=True, blank=True)
+    feature4 = models.CharField(max_length=255, null=True, blank=True)
+    warranty = models.CharField(max_length=255, null=True, blank=True)
+    price = models.CharField(max_length=255, null=True, blank=True)
+    image1 = models.ImageField(upload_to='e-commerce/', null=True, blank=True)
+    image2 = models.ImageField(upload_to='e-commerce/', null=True, blank=True)
+    image3 = models.ImageField(upload_to='e-commerce/', null=True, blank=True)
+    image4 = models.ImageField(upload_to='e-commerce/', null=True, blank=True)
+
+    def get_username(self):
+        try:
+            return self.user.userprofile.username
+        except UserProfile.DoesNotExist:
+            return "No username"
+
+    def __str__(self):
+        return self.title or "Unnamed Material"

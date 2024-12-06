@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (LeadersView, LogoutUser, RegisterUser, LoginUser, SendMessageView, UniversityList, CampusList, CourseList, 
+from .views import (LeadersView, LogoutUser, ProductCreateView, RegisterUser, LoginUser, SendMessageView, UniversityList, CampusList, CourseList, 
                     AddMaterial, MaterialList, EventList, BlogList, UserProfileView,CreateMessageView,
     MessageListView,
     CreateCommunityView,
@@ -50,4 +50,7 @@ urlpatterns = [
     
     # List leaders
      path('leaders/<int:university_id>/<int:campus_id>/', LeadersView.as_view(), name='leaders'),
+     
+    # e-commerce
+    path('products/add/', ProductCreateView.as_view(), name='product-add'),
 ]

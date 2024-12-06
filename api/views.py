@@ -11,7 +11,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from rest_framework import status
 from .models import Leaders, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
-from .serializers import (UniversitySerializer, CampusSerializer, CourseSerializer, 
+from .serializers import (ProductSerializer, UniversitySerializer, CampusSerializer, CourseSerializer, 
                           MaterialSerializer, EventSerializer, BlogSerializer, 
                           UserSerializer, UserProfileSerializer,MessageSerializer, CommunitySerializer, GroupSerializer, UserGroupSerializer, LeadersSerializer)
 
@@ -89,6 +89,7 @@ class LoginUser(APIView):
 
             # Combine user and profile info in response
             response_data = {
+                'user_id': user.id,  # Add user ID here
                 'token': token.key,
                 'profile': profile_serializer.data
             }
@@ -96,6 +97,7 @@ class LoginUser(APIView):
             return Response(response_data, status=status.HTTP_200_OK)
 
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+
 # Logout view
 class LogoutUser(APIView):
     permission_classes = [IsAuthenticated]  # Ensure only authenticated users can log out
@@ -361,4 +363,44 @@ class LeadersView(APIView):
                 return JsonResponse({"message": "No leaders found for the specified university and campus."}, status=404)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
+
+
+class ProductCreateView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        # Create a mutable copy of request data
+        data = request.data.copy()
+
+        # Associate user if provided in the request
+        user_id = data.get('user')
+        if user_id:
+            data['user'] = user_id
+        elif request.user and not request.user.is_anonymous:
+            data['user'] = request.user.id
+        else:
+            return Response({"error": "User is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Handle images separately
+        images = {
+            'image1': request.FILES.get('image1'),
+            'image2': request.FILES.get('image2'),
+            'image3': request.FILES.get('image3'),
+            'image4': request.FILES.get('image4'),
+        }
+
+        # Add images to the data dictionary if they exist
+        for key, file in images.items():
+            if file:
+                data[key] = file
+
+        # Serialize data
+        serializer = ProductSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()  # Save validated data
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            # Log errors for debugging
+            print(serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
