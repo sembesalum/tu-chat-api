@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (LeadersView, LogoutUser, ProductCreateView, RegisterUser, LoginUser, SendMessageView, UniversityList, CampusList, CourseList, 
+from .views import (FollowGroupView, LeadersView, LogoutUser, ProductCreateView, RegisterUser, LoginUser, SendMessageView, UniversityList, CampusList, CourseList, 
                     AddMaterial, MaterialList, EventList, BlogList, UserProfileView,CreateMessageView,
     MessageListView,
     CreateCommunityView,
@@ -40,6 +40,7 @@ urlpatterns = [
     # Groups
     path('groups/create/', CreateGroupView.as_view(), name='create-group'),
     path('communities/<community_id>/groups/', GroupListView.as_view(), name='group-list'),
+    path('groups/<int:group_id>/follow/', FollowGroupView.as_view(), name='toggle_follow'),
     
     # Group management
     path('groups/join/<int:group_id>/', JoinGroupView.as_view(), name='join-group'),
@@ -53,4 +54,5 @@ urlpatterns = [
      
     # e-commerce
     path('products/add/', ProductCreateView.as_view(), name='product-add'),
+    path('products/', ProductCreateView.as_view(), name='list_product'),
 ]

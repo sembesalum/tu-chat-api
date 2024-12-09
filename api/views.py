@@ -10,7 +10,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from rest_framework import status
-from .models import Leaders, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
+from .models import Follow, Leaders, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
 from .serializers import (ProductSerializer, UniversitySerializer, CampusSerializer, CourseSerializer, 
                           MaterialSerializer, EventSerializer, BlogSerializer, 
                           UserSerializer, UserProfileSerializer,MessageSerializer, CommunitySerializer, GroupSerializer, UserGroupSerializer, LeadersSerializer)
@@ -321,29 +321,114 @@ class MarkMessageAsReadView(generics.UpdateAPIView):
     def perform_update(self, serializer):
         serializer.save(read=True)
         
+# class SendMessageView(APIView):
+#     permission_classes = [permissions.AllowAny]
+
+#     def post(self, request, group_id):
+#         # Check if the group exists
+#         group = get_object_or_404(Group, id=group_id)
+
+#         # Prepare the message data
+#         content = request.data.get('content')
+#         if not content:
+#             return Response({'error': 'Content is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # Get userID from request data
+#         userID = request.data.get('userID')
+#         if not userID:
+#             return Response({"error": "Missing userID in the request."}, status=400)
+        
+#         # Print the userID for debugging
+#         print(f"Sender ID: {userID}")
+        
+#         username = request.data.get('username')
+#         if not username:
+#             return Response({'error': 'Username is required.'}, status=status.HTTP_400_BAD_REQUEST)
+#         # Print the userID for debugging
+#         print(f"Sender Name: {username}")
+
+        
+
+#         # Ensure the user exists
+#         user = get_object_or_404(User, id=userID)
+
+#         # Create the message
+#         message = Message(userID=user, group=group, content=content, username=username)
+#         message.save()
+
+#         # Serialize the response
+#         serializer = MessageSerializer(message)
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 class SendMessageView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, group_id):
-        # Check if the group exists
         group = get_object_or_404(Group, id=group_id)
 
-        # Prepare the message data
+        # Ensure the user is a follower
+        user_id = request.data.get('userID')
+        user = get_object_or_404(User, id=user_id)
+        if user not in group.followers.all():
+            return Response({'error': 'You must follow this group to send messages.'}, 
+                            status=status.HTTP_403_FORBIDDEN)
+
+        # Proceed with your existing logic
         content = request.data.get('content')
         if not content:
             return Response({'error': 'Content is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Use None if user is anonymous or the actual user if authenticated
-        sender = request.user if request.user.is_authenticated else None
+        username = request.data.get('username')
+        if not username:
+            return Response({'error': 'Username is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Create the message
-        message = Message(sender=sender, group=group, content=content)
+        message = Message(userID=user, group=group, content=content, username=username)
         message.save()
 
-        # Serialize the response
         serializer = MessageSerializer(message)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+class FollowGroupView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, group_id):
+        userID = request.data.get('userID')  # Get userID from request data
+
+        # Check if userID is provided
+        if not userID:
+            return Response({'error': 'User ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get the user object using the userID
+        try:
+            user = User.objects.get(id=userID)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Get the group object using the group_id
+        group = get_object_or_404(Group, id=group_id)
+
+        # Check if the user is already following the group
+        follow_exists = Follow.objects.filter(user=user, group=group).exists()
+
+        if follow_exists:
+            # If user is already following, unfollow the group
+            Follow.objects.filter(user=user, group=group).delete()  # Unfollow the group
+            return Response({
+                'message': 'You have unfollowed the group.',
+                'follower_count': group.followers.count(),
+                'is_following': False
+            }, status=status.HTTP_200_OK)
+        else:
+            # If user is not following, follow the group
+            Follow.objects.create(user=user, group=group)  # Follow the group
+            return Response({
+                'message': 'You are now following the group.',
+                'follower_count': group.followers.count(),
+                'is_following': True
+            }, status=status.HTTP_200_OK)
+
+            
+    
 class LeadersView(APIView):
     def get(self, request, university_id, campus_id):
         try:
@@ -403,4 +488,14 @@ class ProductCreateView(APIView):
             # Log errors for debugging
             print(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    def get(self, request, *args, **kwargs):
+        product_type = request.GET.get('type')  # Retrieve the 'type' query parameter
+        products = Product.objects.all()
+        if product_type:
+            products = products.filter(material_type=product_type)
+
+        # Pass request to serializer context
+        serializer = ProductSerializer(products, many=True, context={'request': request})
+        return Response(serializer.data)
 

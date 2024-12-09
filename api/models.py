@@ -138,7 +138,7 @@ class Group(models.Model):
     community = models.ForeignKey(Community, related_name='groups', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     admin = models.ForeignKey(User, related_name='group_admins', on_delete=models.CASCADE)
-
+    
     # Determines if the group allows interaction of all users or only admins
     ALLOW_INTERACTION_CHOICES = [
         ('all', 'All Users'),
@@ -146,20 +146,35 @@ class Group(models.Model):
     ]
     interaction_permission = models.CharField(max_length=20, choices=ALLOW_INTERACTION_CHOICES, default='all')
 
+    # ManyToManyField to track followers
+    followers = models.ManyToManyField(User, related_name='followed_groups', blank=True)
+
     def __str__(self):
         return self.name
 
+    @property
+    def follower_count(self):
+        return self.followers.count()  # Calculate number of followers
+
+
 
 class Message(models.Model):
-    sender = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    userID = models.ForeignKey(User, on_delete=models.CASCADE)
+    username = models.CharField(max_length=255, default="Unknown")
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="messages", null=True)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
-    read = models.BooleanField(default=False)  # Add this line
+    read = models.BooleanField(default=False)
 
-    # def __str__(self):
-    #     return f"{self.sender.sender} to {self.receiver.username}: {self.content}" or "Unknown"
+    def save(self, *args, **kwargs):
+        # Automatically fetch the username from the related UserProfile
+        if not self.username:
+            user_profile = UserProfile.objects.get(user=self.userID)
+            self.username = user_profile.username or self.userID.username  # Fallback to User's username
+        super().save(*args, **kwargs)
 
+    def __str__(self):
+        return f"Message from {self.username} in {self.group.name if self.group else 'No Group'}"
 
 
 class UserGroup(models.Model):
@@ -217,3 +232,14 @@ class Product(models.Model):
 
     def __str__(self):
         return self.title or "Unnamed Material"
+    
+class Follow(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'group')  # Ensures a user can only follow a group once
+
+    def __str__(self):
+        return f'{self.user} follows {self.group}'

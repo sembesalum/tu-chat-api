@@ -108,8 +108,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ['id', 'sender', 'group', 'content', 'timestamp', 'read']
-        read_only_fields = ['id', 'sender', 'timestamp', 'read', 'content']  # sender is set in the view
+        fields = ['id', 'userID', 'group', 'content', 'timestamp', 'read', 'username']
+        read_only_fields = ['id', 'userID', 'timestamp', 'read', 'content', 'username']  # userID is set in the view
 
 
 class CommunitySerializer(serializers.ModelSerializer):
@@ -118,10 +118,18 @@ class CommunitySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description', 'admin']
 
 
+# class GroupSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Group
+#         fields = ['id', 'name', 'description', 'profile_picture', 'community', 'admin', 'interaction_permission']
+
 class GroupSerializer(serializers.ModelSerializer):
+    follower_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Group
-        fields = ['id', 'name', 'description', 'profile_picture', 'community', 'admin', 'interaction_permission']
+        fields = ['id', 'name', 'description', 'profile_picture', 'community', 
+                  'created_at', 'admin', 'follower_count']
 
 
 class UserGroupSerializer(serializers.ModelSerializer):
@@ -142,6 +150,31 @@ class LeadersSerializer(serializers.ModelSerializer):
         return None
     
 class ProductSerializer(serializers.ModelSerializer):
+    # Use SerializerMethodField to generate full URLs for image fields
+    image1 = serializers.SerializerMethodField()
+    image2 = serializers.SerializerMethodField()
+    image3 = serializers.SerializerMethodField()
+    image4 = serializers.SerializerMethodField()
+
     class Meta:
         model = Product
-        fields = '__all__'  # or specify required fields
+        fields = [
+            'id', 'material_type', 'title', 'feature1', 'feature2', 'feature3',
+            'feature4', 'warranty', 'price', 'image1', 'image2', 'image3', 'image4', 'user'
+        ]
+
+    def get_image1(self, obj):
+        request = self.context.get('request')
+        return request.build_absolute_uri(obj.image1.url) if obj.image1 else None
+
+    def get_image2(self, obj):
+        request = self.context.get('request')
+        return request.build_absolute_uri(obj.image2.url) if obj.image2 else None
+
+    def get_image3(self, obj):
+        request = self.context.get('request')
+        return request.build_absolute_uri(obj.image3.url) if obj.image3 else None
+
+    def get_image4(self, obj):
+        request = self.context.get('request')
+        return request.build_absolute_uri(obj.image4.url) if obj.image4 else None

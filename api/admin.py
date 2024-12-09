@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import University, Campus, Course, Material, Event, Blog, UserProfile, Community, Group, UserGroup, RequestEvent, Message, Leaders, Product
+from .models import Follow, University, Campus, Course, Material, Event, Blog, UserProfile, Community, Group, UserGroup, RequestEvent, Message, Leaders, Product
 
 # Customize how University is displayed in admin
 @admin.register(University)
@@ -86,3 +86,9 @@ class ProductAdmin(admin.ModelAdmin):
     list_display = ('user','material_type', 'title','feature1', 'feature2', 'feature3', 'feature4', 'warranty', 'price', 'image1', 'image2', 'image3', 'image4')  # Show material type and associated fields
     search_fields = ('material_type', 'user')  # Search for materials
     list_filter = ('material_type', 'user')  # Filters
+    
+@admin.register(Follow)
+class FollowAdmin(admin.ModelAdmin):
+    list_display = ('user','group', 'created_at')  # Show material type and associated fields
+    search_fields = ('user', 'group')  # Search for materials
+    list_filter = ('group', 'created_at')  # Filters
