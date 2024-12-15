@@ -164,17 +164,21 @@ class ProductSerializer(serializers.ModelSerializer):
         ]
 
     def get_image1(self, obj):
-        request = self.context.get('request')
-        return request.build_absolute_uri(obj.image1.url) if obj.image1 else None
+        if obj.image1:
+            return self.context['request'].build_absolute_uri(obj.image1.url)
+        return None  # Return None if image1 is not set
 
     def get_image2(self, obj):
-        request = self.context.get('request')
-        return request.build_absolute_uri(obj.image2.url) if obj.image2 else None
+        if obj.image2:
+            return self.context['request'].build_absolute_uri(obj.image2.url)
+        return None  # Return None if image2 is not set
 
     def get_image3(self, obj):
-        request = self.context.get('request')
-        return request.build_absolute_uri(obj.image3.url) if obj.image3 else None
+        if obj.image3:
+            return self.context['request'].build_absolute_uri(obj.image3.url)
+        return None  # Return None if image3 is not set
 
     def get_image4(self, obj):
-        request = self.context.get('request')
-        return request.build_absolute_uri(obj.image4.url) if obj.image4 else None
+        if obj.image4:
+            return self.context['request'].build_absolute_uri(obj.image4.url)
+        return None  # Return None if image4 is not set

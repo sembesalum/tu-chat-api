@@ -321,45 +321,6 @@ class MarkMessageAsReadView(generics.UpdateAPIView):
     def perform_update(self, serializer):
         serializer.save(read=True)
         
-# class SendMessageView(APIView):
-#     permission_classes = [permissions.AllowAny]
-
-#     def post(self, request, group_id):
-#         # Check if the group exists
-#         group = get_object_or_404(Group, id=group_id)
-
-#         # Prepare the message data
-#         content = request.data.get('content')
-#         if not content:
-#             return Response({'error': 'Content is required.'}, status=status.HTTP_400_BAD_REQUEST)
-
-#         # Get userID from request data
-#         userID = request.data.get('userID')
-#         if not userID:
-#             return Response({"error": "Missing userID in the request."}, status=400)
-        
-#         # Print the userID for debugging
-#         print(f"Sender ID: {userID}")
-        
-#         username = request.data.get('username')
-#         if not username:
-#             return Response({'error': 'Username is required.'}, status=status.HTTP_400_BAD_REQUEST)
-#         # Print the userID for debugging
-#         print(f"Sender Name: {username}")
-
-        
-
-#         # Ensure the user exists
-#         user = get_object_or_404(User, id=userID)
-
-#         # Create the message
-#         message = Message(userID=user, group=group, content=content, username=username)
-#         message.save()
-
-#         # Serialize the response
-#         serializer = MessageSerializer(message)
-#         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
 class SendMessageView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -479,15 +440,28 @@ class ProductCreateView(APIView):
             if file:
                 data[key] = file
 
+        # Print the received data for debugging
+        print("Received data:", data)
+
         # Serialize data
         serializer = ProductSerializer(data=data)
         if serializer.is_valid():
-            serializer.save()  # Save validated data
+            # Save the validated data
+            product = serializer.save()
+
+            # Check if images are uploaded and associate them with the product instance
+            for key, file in images.items():
+                if file:
+                    # Assuming that you are using a FileField in your Product model for image fields
+                    setattr(product, key, file)
+                    product.save()  # Save the image field to the product
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             # Log errors for debugging
             print(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         
     def get(self, request, *args, **kwargs):
         product_type = request.GET.get('type')  # Retrieve the 'type' query parameter
@@ -498,4 +472,3 @@ class ProductCreateView(APIView):
         # Pass request to serializer context
         serializer = ProductSerializer(products, many=True, context={'request': request})
         return Response(serializer.data)
-
