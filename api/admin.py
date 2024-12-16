@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Follow, University, Campus, Course, Material, Event, Blog, UserProfile, Community, Group, UserGroup, RequestEvent, Message, Leaders, Product
+from .models import Follow, PersonalMessage, University, Campus, Course, Material, Event, Blog, UserProfile, Community, Group, UserGroup, RequestEvent, Message, Leaders, Product
 
 # Customize how University is displayed in admin
 @admin.register(University)
@@ -92,3 +92,7 @@ class FollowAdmin(admin.ModelAdmin):
     list_display = ('user','group', 'created_at')  # Show material type and associated fields
     search_fields = ('user', 'group')  # Search for materials
     list_filter = ('group', 'created_at')  # Filters
+
+@admin.register(PersonalMessage)
+class PersonalMessages(admin.ModelAdmin):
+    list_display = ('sender', 'recipient', 'content', 'timestamp', 'read')

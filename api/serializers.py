@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Leaders, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
+from .models import Leaders, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
 
 class UniversitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -182,3 +182,16 @@ class ProductSerializer(serializers.ModelSerializer):
         if obj.image4:
             return self.context['request'].build_absolute_uri(obj.image4.url)
         return None  # Return None if image4 is not set
+
+# class PersonalMessageSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = PersonalMessage
+#         fields = ['id', 'sender', 'recipient', 'content', 'timestamp', 'read']
+
+class PersonalMessageSerializer(serializers.ModelSerializer):
+    sender_username = serializers.CharField(source='sender.username', read_only=True)
+    recipient_username = serializers.CharField(source='recipient.username', read_only=True)
+
+    class Meta:
+        model = PersonalMessage
+        fields = ['id', 'sender', 'sender_username', 'recipient', 'recipient_username', 'content', 'timestamp']

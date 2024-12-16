@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (FollowGroupView, LeadersView, LogoutUser, ProductCreateView, RegisterUser, LoginUser, SendMessageView, UniversityList, CampusList, CourseList, 
+from .views import (ChatUsersListView, FollowGroupView, LeadersView, LogoutUser, ProductCreateView, RegisterUser, LoginUser, SendDirectMessageView, SendMessageView, UniversityList, CampusList, CourseList, 
                     AddMaterial, MaterialList, EventList, BlogList, UserProfileView,CreateMessageView,
     MessageListView,
     CreateCommunityView,
@@ -31,7 +31,10 @@ urlpatterns = [
     
      # Messaging
     path('groups/<int:group_id>/messages/send/', SendMessageView.as_view(), name='send_message'),
+    path('messages/get-sms/<int:recipient>/', SendDirectMessageView.as_view(), name='get_sms'),
+    path('messages/send-direct/<int:recipient>/', SendDirectMessageView.as_view(), name='send_direct'),
     path('groups/<int:group_id>/messages/', MessageListView.as_view(), name='message-list'),
+    path('messages/chat-users/<int:user_id>/', ChatUsersListView.as_view(), name='chat_users_list'),
 
     # Community
     path('communities/create/', CreateCommunityView.as_view(), name='create-community'),

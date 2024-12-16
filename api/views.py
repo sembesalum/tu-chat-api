@@ -9,9 +9,12 @@ from rest_framework import generics, permissions
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
+from django.db.models import Max, F, Q
+from django.db import models 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import status
-from .models import Follow, Leaders, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
-from .serializers import (ProductSerializer, UniversitySerializer, CampusSerializer, CourseSerializer, 
+from .models import Follow, Leaders, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
+from .serializers import (PersonalMessageSerializer, ProductSerializer, UniversitySerializer, CampusSerializer, CourseSerializer, 
                           MaterialSerializer, EventSerializer, BlogSerializer, 
                           UserSerializer, UserProfileSerializer,MessageSerializer, CommunitySerializer, GroupSerializer, UserGroupSerializer, LeadersSerializer)
 
@@ -443,8 +446,8 @@ class ProductCreateView(APIView):
         # Print the received data for debugging
         print("Received data:", data)
 
-        # Serialize data
-        serializer = ProductSerializer(data=data)
+        # Serialize data and include the request in the context
+        serializer = ProductSerializer(data=data, context={'request': request})  # Pass request to context
         if serializer.is_valid():
             # Save the validated data
             product = serializer.save()
@@ -462,6 +465,7 @@ class ProductCreateView(APIView):
             print(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
         
     def get(self, request, *args, **kwargs):
         product_type = request.GET.get('type')  # Retrieve the 'type' query parameter
@@ -472,3 +476,94 @@ class ProductCreateView(APIView):
         # Pass request to serializer context
         serializer = ProductSerializer(products, many=True, context={'request': request})
         return Response(serializer.data)
+    
+class SendDirectMessageView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        """
+        Send a direct message to another user.
+        """
+        # Get sender from the authenticated user
+        sender = request.user
+
+        # Get recipient ID from the request
+        recipient = request.data.get('recipient')
+        if not recipient:
+            return Response({'error': 'Recipient ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Fetch the recipient user
+        recipient = get_object_or_404(User, id=recipient)
+
+        # Get message content
+        content = request.data.get('content')
+        if not content:
+            return Response({'error': 'Message content is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create the message
+        message = PersonalMessage(sender=sender, recipient=recipient, content=content)
+        message.save()
+
+        # Serialize and return the message
+        serializer = PersonalMessageSerializer(message)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def get(self, request, recipient):
+        """
+        Retrieve all messages between the user (authenticated or not) and another user.
+        """
+        # Check if recipient is provided and valid
+        try:
+            recipient = User.objects.get(id=recipient)
+        except User.DoesNotExist:
+            return Response({'error': 'Recipient not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # If the user is authenticated, fetch the current user
+        current_user = request.user if not isinstance(request.user, AnonymousUser) else None
+
+        # Fetch messages between the authenticated user (or None) and the recipient
+        if current_user:
+            messages = PersonalMessage.objects.filter(
+                (Q(sender=current_user) & Q(recipient=recipient)) |
+                (Q(sender=recipient) & Q(recipient=current_user))
+            ).order_by('timestamp')  # Ordered by timestamp
+        else:
+            # If the user is not authenticated, fetch messages from the recipient only
+            messages = PersonalMessage.objects.filter(recipient=recipient).order_by('timestamp')
+
+        # Serialize and return the messages
+        serializer = PersonalMessageSerializer(messages, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+        
+    
+    
+
+class ChatUsersListView(APIView):
+    permission_classes = [AllowAny]  # or your desired permission class
+
+    def get(self, request, user_id):
+        try:
+            # Get the user object from the user_id
+            user = User.objects.get(id=user_id)
+
+            # Get all unique users the specified user has chatted with
+            users_chatted_with = PersonalMessage.objects.filter(
+                Q(sender=user) | Q(recipient=user)
+            ).values('sender', 'recipient').distinct()
+
+            # Collect the unique users (sender or recipient)
+            chat_users = set()
+            for chat in users_chatted_with:
+                if chat['sender'] != user.id:
+                    chat_users.add(chat['sender'])
+                if chat['recipient'] != user.id:
+                    chat_users.add(chat['recipient'])
+
+            # Fetch usernames for the list of user ids
+            usernames = User.objects.filter(id__in=chat_users).values_list('username', flat=True)
+
+            return Response({"users": list(usernames)})
+
+        except User.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)

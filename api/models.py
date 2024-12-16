@@ -243,3 +243,22 @@ class Follow(models.Model):
 
     def __str__(self):
         return f'{self.user} follows {self.group}'
+
+
+class PersonalMessage(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sent_messages")
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_messages")
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    read = models.BooleanField(default=False)
+
+    class Meta:
+        # Ensure that a message is unique per sender, recipient, and timestamp
+        ordering = ['-timestamp']  # Messages ordered by newest first
+
+    def __str__(self):
+        return f"Message from {self.sender.username} to {self.recipient.username}"
+
+    def save(self, *args, **kwargs):
+        # Any additional logic during save (if needed)
+        super().save(*args, **kwargs)
