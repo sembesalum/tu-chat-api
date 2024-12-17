@@ -13,8 +13,8 @@ from django.db.models import Max, F, Q
 from django.db import models 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import status
-from .models import Follow, Leaders, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
-from .serializers import (PersonalMessageSerializer, ProductSerializer, UniversitySerializer, CampusSerializer, CourseSerializer, 
+from .models import Follow, Leaders, Notification, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
+from .serializers import (NotificationSerializer, PersonalMessageSerializer, ProductSerializer, UniversitySerializer, CampusSerializer, CourseSerializer, 
                           MaterialSerializer, EventSerializer, BlogSerializer, 
                           UserSerializer, UserProfileSerializer,MessageSerializer, CommunitySerializer, GroupSerializer, UserGroupSerializer, LeadersSerializer)
 
@@ -567,3 +567,11 @@ class ChatUsersListView(APIView):
 
         except User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+class NotificationList(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        notification = Notification.objects.all()
+        serializer = NotificationSerializer(notification, many=True)
+        return Response(serializer.data)

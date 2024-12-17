@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Leaders, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
+from .models import Leaders, Notification, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
 
 class UniversitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -195,3 +195,8 @@ class PersonalMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = PersonalMessage
         fields = ['id', 'sender', 'sender_username', 'recipient', 'recipient_username', 'content', 'timestamp']
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'title', 'content', 'time', 'read']

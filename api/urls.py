@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (ChatUsersListView, FollowGroupView, LeadersView, LogoutUser, ProductCreateView, RegisterUser, LoginUser, SendDirectMessageView, SendMessageView, UniversityList, CampusList, CourseList, 
+from .views import (ChatUsersListView, FollowGroupView, LeadersView, LogoutUser, NotificationList, ProductCreateView, RegisterUser, LoginUser, SendDirectMessageView, SendMessageView, UniversityList, CampusList, CourseList, 
                     AddMaterial, MaterialList, EventList, BlogList, UserProfileView,CreateMessageView,
     MessageListView,
     CreateCommunityView,
@@ -58,4 +58,7 @@ urlpatterns = [
     # e-commerce
     path('products/add/', ProductCreateView.as_view(), name='product-add'),
     path('products/', ProductCreateView.as_view(), name='list_product'),
+    
+    # Notification
+    path('notification/', NotificationList.as_view(), name='list-notifications')
 ]

@@ -262,3 +262,13 @@ class PersonalMessage(models.Model):
     def save(self, *args, **kwargs):
         # Any additional logic during save (if needed)
         super().save(*args, **kwargs)
+
+class Notification(models.Model):
+    title = models.CharField(max_length=255, null=True)
+    content = models.TextField()
+    time = models.DateTimeField(auto_now_add=True)
+    read = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return self.title
+    

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Follow, PersonalMessage, University, Campus, Course, Material, Event, Blog, UserProfile, Community, Group, UserGroup, RequestEvent, Message, Leaders, Product
+from .models import Follow, Notification, PersonalMessage, University, Campus, Course, Material, Event, Blog, UserProfile, Community, Group, UserGroup, RequestEvent, Message, Leaders, Product
 
 # Customize how University is displayed in admin
 @admin.register(University)
@@ -96,3 +96,7 @@ class FollowAdmin(admin.ModelAdmin):
 @admin.register(PersonalMessage)
 class PersonalMessages(admin.ModelAdmin):
     list_display = ('sender', 'recipient', 'content', 'timestamp', 'read')
+    
+@admin.register(Notification)
+class AdminNotification(admin.ModelAdmin):
+    list_display = ('title', 'content', 'time', 'read')
