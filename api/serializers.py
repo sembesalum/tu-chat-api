@@ -51,6 +51,7 @@ class BlogSerializer(serializers.ModelSerializer):
     class Meta:
         model = Blog
         fields = ['id', 'title', 'content', 'date', 'image_url', 'is_breaking_news', 'university_id']
+        print(fields[4])
 
     def get_image_url(self, obj):
         request = self.context.get('request')
@@ -58,15 +59,6 @@ class BlogSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.image.url)
         return None
     
-# class BlogSerializer(serializers.ModelSerializer):
-#     image_url = serializers.SerializerMethodField()
-
-#     class Meta:
-#         model = Blog
-#         fields = ['id', 'title', 'author', 'description', 'date', 'image_url', 'is_breaking_news', 'university_id']
-
-#     def get_image_url(self, obj):
-#         return obj.image  # Simply return the URL since it's already a string
         
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
