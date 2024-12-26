@@ -35,16 +35,21 @@ class MaterialSerializer(serializers.ModelSerializer):
 
 class EventSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
+    user_id = serializers.IntegerField(source='user.id', read_only=True)  # Add this line to get the user's ID
+    username = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
-        fields = ['id', 'title', 'description', 'time', 'date', 'image_url', 'is_breaking_news', 'university_id', 'user']
+        fields = ['id', 'title', 'description', 'time', 'date', 'image_url', 'is_breaking_news', 'university_id', 'user', 'user_id', 'username']
 
     def get_image_url(self, obj):
         request = self.context.get('request')
         if obj.image and request:
             return request.build_absolute_uri(obj.image.url)
         return None
+    
+    def get_username(self, obj):
+        return obj.user.username
 
 class BlogSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()

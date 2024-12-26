@@ -56,6 +56,12 @@ class Event(models.Model):
         null=True, 
         blank=True
     )
+    
+    def get_username(self):
+        try:
+            return self.user.userprofile.username
+        except UserProfile.DoesNotExist:
+            return "No username"
 
     def __str__(self):
         return self.title or "Unnamed Event"
