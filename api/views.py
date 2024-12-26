@@ -217,7 +217,7 @@ class BlogList(APIView):
     def get(self, request, university_id=None):
         # Check if university_id is provided; if not, return all events
         if university_id:
-            blogs = Blog.objects.filter(university_id=university_id, is_breaking_news=True)
+            blogs = Blog.objects.filter(university_id=university_id, is_breaking_news=False)
         else:
             blogs = Blog.objects.all()
 
