@@ -122,11 +122,15 @@ class CommunitySerializer(serializers.ModelSerializer):
 
 class GroupSerializer(serializers.ModelSerializer):
     follower_count = serializers.IntegerField(read_only=True)
+    username = serializers.SerializerMethodField()
 
     class Meta:
         model = Group
         fields = ['id', 'name', 'description', 'profile_picture', 'community', 
-                  'created_at', 'admin', 'follower_count']
+                  'created_at', 'admin', 'follower_count', 'username']
+        
+    def get_username(self, obj):
+        return obj.admin.username
 
 
 class UserGroupSerializer(serializers.ModelSerializer):

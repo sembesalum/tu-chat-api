@@ -163,6 +163,15 @@ class Group(models.Model):
     def follower_count(self):
         return self.followers.count()  # Calculate number of followers
 
+    @property
+    def admin_username(self):
+        return self.admin.username  # Return only the admin's username
+    
+    @property
+    def formatted_created_at(self):
+        # Format the created_at datetime field to day/month/year
+        return self.created_at.strftime('%d/%m/%Y') if self.created_at else ''
+
 
 
 class Message(models.Model):
