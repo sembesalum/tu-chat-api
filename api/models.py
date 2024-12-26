@@ -42,6 +42,7 @@ class Material(models.Model):
     file = models.FileField(upload_to='materials/')
 
 class Event(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=255, null=True, blank=True)
     description = models.TextField(max_length=1000, null=True, blank=True)
     time = models.TimeField(null=True, blank=True)

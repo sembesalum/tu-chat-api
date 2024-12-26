@@ -38,7 +38,7 @@ class EventSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Event
-        fields = ['id', 'title', 'description', 'time', 'date', 'image_url', 'is_breaking_news', 'university_id']
+        fields = ['id', 'title', 'description', 'time', 'date', 'image_url', 'is_breaking_news', 'university_id', 'user']
 
     def get_image_url(self, obj):
         request = self.context.get('request')
@@ -147,12 +147,14 @@ class ProductSerializer(serializers.ModelSerializer):
     image2 = serializers.SerializerMethodField()
     image3 = serializers.SerializerMethodField()
     image4 = serializers.SerializerMethodField()
+    user_id = serializers.IntegerField(source='user.id', read_only=True)  # Add this line to get the user's ID
+    username = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
             'id', 'material_type', 'title', 'feature1', 'feature2', 'feature3',
-            'feature4', 'warranty', 'price', 'image1', 'image2', 'image3', 'image4', 'user'
+            'feature4', 'warranty', 'price', 'image1', 'image2', 'image3', 'image4', 'user', 'user_id', 'username'
         ]
 
     def get_image1(self, obj):
@@ -174,6 +176,9 @@ class ProductSerializer(serializers.ModelSerializer):
         if obj.image4:
             return self.context['request'].build_absolute_uri(obj.image4.url)
         return None  # Return None if image4 is not set
+    
+    def get_username(self, obj):
+        return obj.user.username  # Retrieve the username from the user related to the product
 
 # class PersonalMessageSerializer(serializers.ModelSerializer):
 #     class Meta:
