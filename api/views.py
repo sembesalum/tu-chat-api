@@ -12,8 +12,10 @@ from django.contrib.auth.models import User
 from django.db.models import Max, F, Q
 from django.db import models 
 from django.contrib.auth.models import AnonymousUser
+import random
+from django.core.mail import send_mail
 from rest_framework import status
-from .models import Follow, Leaders, Notification, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
+from .models import OTP, Follow, Leaders, Notification, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
 from .serializers import (NotificationSerializer, PersonalMessageSerializer, ProductSerializer, UniversitySerializer, CampusSerializer, CourseSerializer, 
                           MaterialSerializer, EventSerializer, BlogSerializer, 
                           UserSerializer, UserProfileSerializer,MessageSerializer, CommunitySerializer, GroupSerializer, UserGroupSerializer, LeadersSerializer)
@@ -113,6 +115,82 @@ class LogoutUser(APIView):
         except:
             return Response({"error": "Something went wrong"}, status=status.HTTP_400_BAD_REQUEST)
 
+
+class RequestPasswordReset(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'error': 'User with this email does not exist'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Generate a 6-digit OTP
+        otp_code = f"{random.randint(100000, 999999)}"
+
+        # Create or update the OTP entry for the user
+        OTP.objects.update_or_create(user=user, defaults={'otp_code': otp_code, 'is_verified': False})
+
+        # Send the OTP to the user's email
+        send_mail(
+            subject="Password Reset OTP",
+            message=f"Your OTP code for password reset is {otp_code}",
+            from_email="noreply@yourdomain.com",
+            recipient_list=[email],
+        )
+
+        return Response({'message': 'OTP has been sent to your email'}, status=status.HTTP_200_OK)
+    
+class VerifyOTP(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        otp_code = request.data.get('otp_code')
+
+        try:
+            user = User.objects.get(email=email)
+            otp_entry = OTP.objects.get(user=user, otp_code=otp_code)
+
+            if otp_entry.is_verified:
+                return Response({'error': 'OTP has already been used'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Mark the OTP as verified
+            otp_entry.is_verified = True
+            otp_entry.save()
+
+            return Response({'message': 'OTP verified successfully'}, status=status.HTTP_200_OK)
+
+        except (User.DoesNotExist, OTP.DoesNotExist):
+            return Response({'error': 'Invalid email or OTP'}, status=status.HTTP_400_BAD_REQUEST)
+
+class ResetPassword(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        new_password = request.data.get('new_password')
+
+        try:
+            user = User.objects.get(email=email)
+            otp_entry = OTP.objects.get(user=user)
+
+            if not otp_entry.is_verified:
+                return Response({'error': 'OTP has not been verified'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Set the new password
+            user.set_password(new_password)
+            user.save()
+
+            # Optionally delete the OTP entry after successful password reset
+            otp_entry.delete()
+
+            return Response({'message': 'Password reset successfully'}, status=status.HTTP_200_OK)
+
+        except (User.DoesNotExist, OTP.DoesNotExist):
+            return Response({'error': 'Invalid request'}, status=status.HTTP_400_BAD_REQUEST)
 
 # Fetch university data (public access)
 class UniversityList(APIView):

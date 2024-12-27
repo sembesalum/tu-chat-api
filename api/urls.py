@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (ChatUsersListView, FollowGroupView, LeadersView, LogoutUser, NotificationList, ProductCreateView, RegisterUser, LoginUser, SendDirectMessageView, SendMessageView, UniversityList, CampusList, CourseList, 
+from .views import (ChatUsersListView, FollowGroupView, LeadersView, LogoutUser, NotificationList, ProductCreateView, RegisterUser, LoginUser, RequestPasswordReset, ResetPassword, SendDirectMessageView, SendMessageView, UniversityList, CampusList, CourseList, 
                     AddMaterial, MaterialList, EventList, BlogList, UserProfileView,CreateMessageView,
     MessageListView,
     CreateCommunityView,
@@ -8,7 +8,7 @@ from .views import (ChatUsersListView, FollowGroupView, LeadersView, LogoutUser,
     GroupListView,
     JoinGroupView,
     LeaveGroupView,
-    PromoteUserView,MarkMessageAsReadView)
+    PromoteUserView,MarkMessageAsReadView, VerifyOTP)
 
 urlpatterns = [
     path('register/', RegisterUser.as_view(), name='register'),
@@ -21,6 +21,10 @@ urlpatterns = [
     path('universities/<int:university_id>/campuses/', CampusList.as_view(), name='campuses'),
     path('campuses/<int:campus_id>/courses/', CourseList.as_view(), name='courses'),
     path('materials/add/', AddMaterial.as_view(), name='add_material'),
+    
+    path('password-reset/request-otp/', RequestPasswordReset.as_view(), name='request_password_reset'),
+    path('password-reset/verify-otp/', VerifyOTP.as_view(), name='verify_otp'),
+    path('password-reset/reset-password/', ResetPassword.as_view(), name='reset_password'),
     
     # Updated materials URL to include optional material type
     path('materials/<int:university_id>/<int:campus_id>/<int:course_id>/', MaterialList.as_view(), name='materials'),
