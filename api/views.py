@@ -1,22 +1,26 @@
 from django.db import IntegrityError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.views import View
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics, permissions
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from django.db.models import Max, F, Q
-from django.db import models 
+from django.db import models
 from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 import random
 from django.core.mail import send_mail
 from rest_framework import status
 from .models import OTP, Follow, Leaders, Notification, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
-from .serializers import (NotificationSerializer, PersonalMessageSerializer, ProductSerializer, UniversitySerializer, CampusSerializer, CourseSerializer, 
+from .serializers import (ChatUserSerializer, NotificationSerializer, PersonalMessageSerializer, ProductSerializer, UniversitySerializer, CampusSerializer, CourseSerializer, 
                           MaterialSerializer, EventSerializer, BlogSerializer, 
                           UserSerializer, UserProfileSerializer,MessageSerializer, CommunitySerializer, GroupSerializer, UserGroupSerializer, LeadersSerializer)
 
@@ -114,6 +118,18 @@ class LogoutUser(APIView):
             return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
         except:
             return Response({"error": "Something went wrong"}, status=status.HTTP_400_BAD_REQUEST)
+        
+class ValidateToken(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # If the request reaches here, the token is valid, and the user exists
+        return Response({
+            'user_id': request.user.id,
+            'email': request.user.email,
+            'username': request.user.username
+        }, status=status.HTTP_200_OK)
 
 
 class RequestPasswordReset(APIView):
@@ -310,16 +326,17 @@ class BlogList(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserProfileView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
-    def get(self, request):
+    def get(self, request, user_id):
         try:
-            # Retrieve the user profile for the authenticated user
-            profile = UserProfile.objects.all()
+            # Retrieve the user profile by user ID
+            profile = UserProfile.objects.get(user__id=user_id)
             serializer = UserProfileSerializer(profile)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except UserProfile.DoesNotExist:
             return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
         
 # Messaging
 class CreateMessageView(generics.CreateAPIView):
@@ -403,7 +420,7 @@ class MarkMessageAsReadView(generics.UpdateAPIView):
         serializer.save(read=True)
         
 class SendMessageView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
 
     def post(self, request, group_id):
         group = get_object_or_404(Group, id=group_id)
@@ -555,66 +572,202 @@ class ProductCreateView(APIView):
         serializer = ProductSerializer(products, many=True, context={'request': request})
         return Response(serializer.data)
     
-class SendDirectMessageView(APIView):
-    permission_classes = [permissions.AllowAny]
+class ProductMarkAsSoldView(APIView):
+    def post(self, request, pk):
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
-    def post(self, request):
+        user_id = request.data.get('user_id')  # Extract user_id from the request
+        if product.user.id != user_id:
+            return Response({"error": "You are not authorized to mark this product as sold."}, status=status.HTTP_403_FORBIDDEN)
+
+        product.is_sold = True
+        product.save()
+        return Response({"detail": "Product marked as sold successfully."}, status=status.HTTP_200_OK)
+
+
+class ProductUpdateView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request, pk):
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        user_id = request.data.get('user_id')  # Extract user_id from the request
+        if product.user.id != user_id:
+            return Response({"error": "You are not authorized to update this product."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Update fields passed in request.data
+        for field, value in request.data.items():
+            if field not in ['user_id']:  # Exclude user_id from updates
+                setattr(product, field, value)
+        product.save()
+        return Response({"detail": "Product updated successfully."}, status=status.HTTP_200_OK)
+
+
+
+class ProductDeleteView(APIView):
+    def post(self, request, pk):
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        user_id = request.data.get('user_id')  # Extract user_id from the request
+        if product.user.id != user_id:
+            return Response({"error": "You are not authorized to delete this product."}, status=status.HTTP_403_FORBIDDEN)
+
+        product.delete()
+        return Response({"detail": "Product deleted successfully."}, status=status.HTTP_200_OK)
+
+
+# class ProductActionView(APIView):
+#     def post(self, request, pk, action):
+#         try:
+#             product = Product.objects.get(pk=pk)
+#         except Product.DoesNotExist:
+#             return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+#         user_id = request.data.get('user_id')  # Extract user_id from the request
+#         if product.user.id != user_id:
+#             return Response({"error": "You are not authorized to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+
+#         # Perform action based on the 'action' parameter
+#         if action == "delete":
+#             product.delete()
+#             return Response({"detail": "Product deleted successfully."}, status=status.HTTP_200_OK)
+
+#         elif action == "update":
+#             # Assuming fields are passed in request.data for update
+#             for field, value in request.data.items():
+#                 setattr(product, field, value)
+#             product.save()
+#             return Response({"detail": "Product updated successfully."}, status=status.HTTP_200_OK)
+
+#         elif action == "mark-as-sold":
+#             product.is_sold = True
+#             product.save()
+#             return Response({"detail": "Product marked as sold successfully."}, status=status.HTTP_200_OK)
+
+#         return Response({"error": "Invalid action."}, status=status.HTTP_400_BAD_REQUEST)
+
+    
+
+class SendDirectMessageView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, user_id):
         """
         Send a direct message to another user.
         """
-        # Get sender from the authenticated user
-        sender = request.user
+        print(f"Request data: {request.data}")
 
-        # Get recipient ID from the request
-        recipient = request.data.get('recipient')
-        if not recipient:
-            return Response({'error': 'Recipient ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        # The user_id in the URL will be the sender's ID
+        sender_user_id = user_id
 
-        # Fetch the recipient user
-        recipient = get_object_or_404(User, id=recipient)
+        try:
+            sender = User.objects.get(id=sender_user_id)
+        except User.DoesNotExist:
+            return Response({'error': 'Sender user not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Get message content
+        recipient_id = request.data.get('recipient')
+        if not recipient_id:
+            return Response({'error': 'Recipient userID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            recipient_user = User.objects.get(id=recipient_id)
+        except User.DoesNotExist:
+            return Response({'error': 'Recipient not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if sender.id == recipient_user.id:
+            return Response({'error': 'Sender and recipient cannot be the same.'}, status=status.HTTP_400_BAD_REQUEST)
+
         content = request.data.get('content')
         if not content:
             return Response({'error': 'Message content is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Create the message
-        message = PersonalMessage(sender=sender, recipient=recipient, content=content)
+        message = PersonalMessage(sender=sender, recipient=recipient_user, content=content)
         message.save()
 
-        # Serialize and return the message
         serializer = PersonalMessageSerializer(message)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
+
+
+
+    # def get(self, request, recipient):
+    #     """
+    #     Retrieve all messages between the user (authenticated or not) and another user.
+    #     """
+    #     # Check if recipient is provided and valid
+    #     try:
+    #         recipient = User.objects.get(id=recipient)
+    #     except User.DoesNotExist:
+    #         return Response({'error': 'Recipient not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    #     # If the user is authenticated, fetch the current user
+    #     current_user = request.user if not isinstance(request.user, AnonymousUser) else None
+
+    #     # Fetch messages between the authenticated user (or None) and the recipient
+    #     if current_user:
+    #         messages = PersonalMessage.objects.filter(
+    #             (Q(sender=current_user) & Q(recipient=recipient)) |
+    #             (Q(sender=recipient) & Q(recipient=current_user))
+    #         ).order_by('timestamp')  # Ordered by timestamp
+    #     else:
+    #         # If the user is not authenticated, fetch messages from the recipient only
+    #         messages = PersonalMessage.objects.filter(recipient=recipient).order_by('timestamp')
+
+    #     # Serialize and return the messages
+    #     serializer = PersonalMessageSerializer(messages, many=True)
+    #     return Response(serializer.data, status=status.HTTP_200_OK)
+
+class GetMessagesView(APIView):
+    permission_classes = [AllowAny]  # Allow any user to access this endpoint
+
     def get(self, request, recipient):
         """
-        Retrieve all messages between the user (authenticated or not) and another user.
+        Get all messages between a specific sender and recipient.
         """
-        # Check if recipient is provided and valid
+        # Log the request data for debugging
+        print(f"Request data: {request.query_params}")
+
+        sender_id = request.query_params.get('sender_id')  # Expecting sender_id to be passed in query params
+
+        if not sender_id:
+            return Response({'error': 'Sender ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Fetch the recipient user by recipient ID (from the URL parameter)
         try:
-            recipient = User.objects.get(id=recipient)
+            recipient_user = User.objects.get(id=recipient)
         except User.DoesNotExist:
             return Response({'error': 'Recipient not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # If the user is authenticated, fetch the current user
-        current_user = request.user if not isinstance(request.user, AnonymousUser) else None
+        # Fetch the sender user by sender ID (from the query parameter)
+        try:
+            sender_user = User.objects.get(id=sender_id)
+        except User.DoesNotExist:
+            return Response({'error': 'Sender not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Fetch messages between the authenticated user (or None) and the recipient
-        if current_user:
-            messages = PersonalMessage.objects.filter(
-                (Q(sender=current_user) & Q(recipient=recipient)) |
-                (Q(sender=recipient) & Q(recipient=current_user))
-            ).order_by('timestamp')  # Ordered by timestamp
-        else:
-            # If the user is not authenticated, fetch messages from the recipient only
-            messages = PersonalMessage.objects.filter(recipient=recipient).order_by('timestamp')
+        # Get all messages between the sender and recipient (both directions)
+        messages = PersonalMessage.objects.filter(
+            (Q(sender=sender_user, recipient=recipient_user) | 
+             Q(sender=recipient_user, recipient=sender_user))
+        ).order_by('timestamp')  # Order by timestamp to maintain conversation flow
+
+        # If no messages are found
+        if not messages.exists():
+            return Response({'message': 'No messages found for this sender and recipient.'}, status=status.HTTP_404_NOT_FOUND)
 
         # Serialize and return the messages
         serializer = PersonalMessageSerializer(messages, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-        
-    
     
 
 class ChatUsersListView(APIView):
@@ -639,9 +792,20 @@ class ChatUsersListView(APIView):
                     chat_users.add(chat['recipient'])
 
             # Fetch usernames for the list of user ids
-            usernames = User.objects.filter(id__in=chat_users).values_list('username', flat=True)
+            users = User.objects.filter(id__in=chat_users)
+            
+            # Prepare the data to send back
+            chat_users_data = []
+            for user in users:
+                chat_users_data.append({
+                    'recipient': user.id,
+                    'username': user.username
+                })
 
-            return Response({"users": list(usernames)})
+            # Serialize the data
+            serializer = ChatUserSerializer(chat_users_data, many=True)
+
+            return Response({"users": serializer.data})
 
         except User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -653,3 +817,43 @@ class NotificationList(APIView):
         notification = Notification.objects.all()
         serializer = NotificationSerializer(notification, many=True)
         return Response(serializer.data)
+    
+
+class UserListView(View):
+    def get(self, request):
+        # Debug the query
+        profiles = User.objects.all().values('id', 'username')
+        print(f"Fetched Profiles: {list(profiles)}")
+        
+        # Return the response as JSON
+        return JsonResponse(list(profiles), safe=False, status=200)
+
+class UserProfileUpdateView(APIView):
+    permission_classes = [AllowAny]
+
+    def get_object(self, user_id):
+        """Get the user profile for the provided user_id"""
+        try:
+            return UserProfile.objects.get(user_id=user_id)
+        except UserProfile.DoesNotExist:
+            return None
+
+    def put(self, request, *args, **kwargs):
+        """Handle the PUT request to update the user's profile"""
+        user_id = kwargs.get('user_id')  # Get user_id from the URL
+
+        # Check if the user profile exists
+        user_profile = self.get_object(user_id)
+        if user_profile is None:
+            return Response({'detail': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Serialize the incoming data
+        serializer = UserProfileSerializer(user_profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()  # Save the updated profile
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        # Log the errors for debugging
+        print(serializer.errors)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

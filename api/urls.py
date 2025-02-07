@@ -1,6 +1,6 @@
 from django.urls import path
-from .views import (ChatUsersListView, FollowGroupView, LeadersView, LogoutUser, NotificationList, ProductCreateView, RegisterUser, LoginUser, RequestPasswordReset, ResetPassword, SendDirectMessageView, SendMessageView, UniversityList, CampusList, CourseList, 
-                    AddMaterial, MaterialList, EventList, BlogList, UserProfileView,CreateMessageView,
+from .views import (ChatUsersListView, FollowGroupView, GetMessagesView, LeadersView, LogoutUser, NotificationList, ProductCreateView, ProductDeleteView, ProductMarkAsSoldView, ProductUpdateView,RegisterUser, LoginUser, RequestPasswordReset, ResetPassword, SendDirectMessageView, SendMessageView, UniversityList, CampusList, CourseList, 
+                    AddMaterial, MaterialList, EventList, BlogList, UserListView, UserProfileUpdateView, UserProfileView,CreateMessageView,
     MessageListView,
     CreateCommunityView,
     CommunityListView,
@@ -14,7 +14,9 @@ urlpatterns = [
     path('register/', RegisterUser.as_view(), name='register'),
     path('login/', LoginUser.as_view(), name='login'),
     path('logout/', LogoutUser.as_view(), name='logout'),
-    path('api/profile/', UserProfileView.as_view(), name='user-profile'),
+    path('profile/', UserProfileView.as_view(), name='user-profile'),
+    path('user-profile/<int:user_id>/', UserProfileView.as_view(), name='user-profile'),
+    path('update-profile/<int:user_id>/', UserProfileUpdateView.as_view(), name='update-profile'),
     path('universities/', UniversityList.as_view(), name='universities'),
     path('campuses/', CampusList.as_view(), name='campuses'),
     path('courses/', CourseList.as_view(), name='courses'),
@@ -35,8 +37,8 @@ urlpatterns = [
     
      # Messaging
     path('groups/<int:group_id>/messages/send/', SendMessageView.as_view(), name='send_message'),
-    path('messages/get-sms/<int:recipient>/', SendDirectMessageView.as_view(), name='get_sms'),
-    path('messages/send-direct/<int:recipient>/', SendDirectMessageView.as_view(), name='send_direct'),
+    path('messages/get-sms/<int:recipient>/', GetMessagesView.as_view(), name='get_sms'),
+    path('messages/send-direct/<int:user_id>/', SendDirectMessageView.as_view(), name='send_direct_message'),
     path('groups/<int:group_id>/messages/', MessageListView.as_view(), name='message-list'),
     path('messages/chat-users/<int:user_id>/', ChatUsersListView.as_view(), name='chat_users_list'),
 
@@ -62,7 +64,11 @@ urlpatterns = [
     # e-commerce
     path('products/add/', ProductCreateView.as_view(), name='product-add'),
     path('products/', ProductCreateView.as_view(), name='list_product'),
+    path('products/<int:pk>/delete/', ProductDeleteView.as_view(), name='product_delete'),
+    path('products/<int:pk>/update/', ProductUpdateView.as_view(), name='product_update'),
+    path('products/<int:pk>/mark-as-sold/', ProductMarkAsSoldView.as_view(), name='product_mark_as_sold'),
     
     # Notification
-    path('notification/', NotificationList.as_view(), name='list-notifications')
+    path('notification/', NotificationList.as_view(), name='list-notifications'),
+    path('users/', UserListView.as_view(), name='user-list'),
 ]

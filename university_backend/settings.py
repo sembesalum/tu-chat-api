@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
-import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,7 +25,7 @@ SECRET_KEY = 'django-insecure-uwf!$!@qgcx2pol!ycfy(_k8i1!5)txkht2ky%l^()np$su9f^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['salumsembe.pythonanywhere.com', '127.0.0.1']
+ALLOWED_HOSTS = ['sonyenterprises.pythonanywhere.com', '127.0.0.1']
 
 
 # Application definition
@@ -40,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'django_extensions',
     'rest_framework.authtoken',  # Token authentication
     'api',  # Our app
     
@@ -155,7 +155,7 @@ CORS_EXPOSE_HEADERS = ['Authorization']
 CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:8000',
-    'https://salumsembe.pythonanywhere.com'
+    'https://sonyenterprises.pythonanywhere.com'
 ]
 
 

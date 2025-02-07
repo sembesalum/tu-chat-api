@@ -28,7 +28,7 @@ class CourseAdmin(admin.ModelAdmin):
 # Customize how Material is displayed in admin
 @admin.register(Material)
 class MaterialAdmin(admin.ModelAdmin):
-    list_display = ('material_type', 'university', 'campus', 'course', 'file')  # Show material type and associated fields
+    list_display = ('title', 'material_type', 'university', 'campus', 'course', 'file')  # Show material type and associated fields
     search_fields = ('material_type', 'university__name', 'campus__name', 'course__name')  # Search for materials
     list_filter = ('material_type', 'university', 'campus', 'course')  # Filters
 

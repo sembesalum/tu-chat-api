@@ -94,12 +94,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
     course = serializers.CharField(source='course.name', read_only=True)  # Maps course name
     course_id = serializers.IntegerField(source='course.id', read_only=True)  # Maps course ID
 
+    # Allow users to update these fields
+    username = serializers.CharField(max_length=255, required=True)
+    phone_number = serializers.CharField(max_length=15, required=True)
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         model = UserProfile
         fields = [
-            'username', 'email', 'phone_number', 'university', 'university_id', 
-            'campus', 'campus_id', 'course', 'course_id'
+            'username', 'email', 'phone_number', 'university', 'university_id',
+            'campus', 'campus_id', 'course', 'course_id', 'profile_picture'
         ]
+
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -200,9 +206,17 @@ class PersonalMessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PersonalMessage
-        fields = ['id', 'sender', 'sender_username', 'recipient', 'recipient_username', 'content', 'timestamp']
+        fields = ['id', 'sender', 'recipient', 'content', 'timestamp', 'recipient_username', 'sender_username']
 
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ['id', 'title', 'content', 'time', 'read']
+
+class ChatUserSerializer(serializers.Serializer):
+    recipient = serializers.IntegerField()
+    username = serializers.CharField(max_length=100)
+    
+    class Meta:
+        model = PersonalMessage
+        fields = ['username']

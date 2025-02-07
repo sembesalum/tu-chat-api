@@ -124,12 +124,12 @@ class UserProfile(models.Model):
     campus = models.ForeignKey(Campus, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     phone_number = models.CharField(max_length=15)
-    # profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)  # Fixed typo
-    profile_picture = models.URLField(max_length=200, null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)  # Fixed typo
 
     def __str__(self):
         return self.user.email
-    
+
+
 class Community(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
@@ -224,7 +224,7 @@ class Product(models.Model):
         ('fashion', 'Fashion'),
         ('lifestyle', 'Lifestyle'),
         ('computer', 'Computer'),
-        ('elecronics', 'Electronics'),
+        ('electronics', 'Electronics'),
         ('other', 'Other'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -236,6 +236,7 @@ class Product(models.Model):
     feature4 = models.CharField(max_length=255, null=True, blank=True)
     warranty = models.CharField(max_length=255, null=True, blank=True)
     price = models.CharField(max_length=255, null=True, blank=True)
+    is_sold = models.BooleanField(default=False)
     image1 = models.ImageField(upload_to='e-commerce/', null=True, blank=True)
     image2 = models.ImageField(upload_to='e-commerce/', null=True, blank=True)
     image3 = models.ImageField(upload_to='e-commerce/', null=True, blank=True)
@@ -249,6 +250,7 @@ class Product(models.Model):
 
     def __str__(self):
         return self.title or "Unnamed Material"
+
     
 class Follow(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
