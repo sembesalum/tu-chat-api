@@ -39,7 +39,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'django_extensions',
     'rest_framework.authtoken',  # Token authentication
     'api',  # Our app
     
