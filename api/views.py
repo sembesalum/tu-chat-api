@@ -697,36 +697,6 @@ class SendDirectMessageView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-
-
-
-    # def get(self, request, recipient):
-    #     """
-    #     Retrieve all messages between the user (authenticated or not) and another user.
-    #     """
-    #     # Check if recipient is provided and valid
-    #     try:
-    #         recipient = User.objects.get(id=recipient)
-    #     except User.DoesNotExist:
-    #         return Response({'error': 'Recipient not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-    #     # If the user is authenticated, fetch the current user
-    #     current_user = request.user if not isinstance(request.user, AnonymousUser) else None
-
-    #     # Fetch messages between the authenticated user (or None) and the recipient
-    #     if current_user:
-    #         messages = PersonalMessage.objects.filter(
-    #             (Q(sender=current_user) & Q(recipient=recipient)) |
-    #             (Q(sender=recipient) & Q(recipient=current_user))
-    #         ).order_by('timestamp')  # Ordered by timestamp
-    #     else:
-    #         # If the user is not authenticated, fetch messages from the recipient only
-    #         messages = PersonalMessage.objects.filter(recipient=recipient).order_by('timestamp')
-
-    #     # Serialize and return the messages
-    #     serializer = PersonalMessageSerializer(messages, many=True)
-    #     return Response(serializer.data, status=status.HTTP_200_OK)
-
 class GetMessagesView(APIView):
     permission_classes = [AllowAny]  # Allow any user to access this endpoint
 
@@ -810,6 +780,29 @@ class ChatUsersListView(APIView):
         except User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
         
+class DeleteMessageView(APIView):
+    permission_classes = [AllowAny]  # Allow any user to access this endpoint, but we will check permissions within the method
+
+    def delete(self, request, message_id):
+        """
+        Delete a specific message by its ID.
+        """
+        # Get the message from the database
+        message = get_object_or_404(PersonalMessage, id=message_id)
+
+        # Check if the requesting user is either the sender or the recipient
+        user_id = request.query_params.get('user_id')  # Expecting user_id to be passed in query params
+        if not user_id:
+            return Response({'error': 'User ID is required to delete the message.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if message.sender.id != int(user_id) and message.recipient.id != int(user_id):
+            return Response({'error': 'You do not have permission to delete this message.'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Delete the message
+        message.delete()
+
+        return Response({'message': 'Message deleted successfully.'}, status=status.HTTP_200_OK)
+    
 class NotificationList(APIView):
     permission_classes = [AllowAny]
     
