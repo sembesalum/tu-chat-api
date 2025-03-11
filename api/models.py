@@ -219,13 +219,13 @@ class Leaders(models.Model):
     
 class Product(models.Model):
     PRODUCT_TYPE_CHOICES = [
-        ('mobile', 'Mobile'),
-        ('sport', 'Sport'),
-        ('fashion', 'Fashion'),
-        ('lifestyle', 'Lifestyle'),
-        ('computer', 'Computer'),
         ('electronics', 'Electronics'),
-        ('other', 'Other'),
+        ('furniture', 'Furniture'), 
+        ('fashion', 'Fashion'),
+        ('beauty', 'Beauty'),
+        ('health', 'Health'),
+        ('cosmetics', 'Cosmetics'),
+        ('vehicles', 'Vehicles'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     material_type = models.CharField(max_length=50, choices=PRODUCT_TYPE_CHOICES)
