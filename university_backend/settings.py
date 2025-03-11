@@ -91,15 +91,15 @@ WSGI_APPLICATION = 'university_backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',  # Use MySQL backend
-        'NAME': 'tuchat',                     # Database name
-        'USER': 'sonyenterprises',             # Database username
-        'PASSWORD': 'mikidadimkumba',     # Database password (replace with your actual password)
-        'HOST': 'sonyenterprises.mysql.pythonanywhere-services.com',  # PythonAnywhere MySQL host
-        'PORT': '3306',                       # Default MySQL port
+        'ENGINE': 'django.db.backends.mysql',  
+        'NAME': 'sonyenterprises$tuchat',       # Correct format for PythonAnywhere
+        'USER': 'sonyenterprises',
+        'PASSWORD': 'mikidadimkumba',
+        'HOST': 'sonyenterprises.mysql.pythonanywhere-services.com',
+        'PORT': '3306',
         'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",  # Ensure strict mode
-            'charset': 'utf8mb4',            # Use utf8mb4 for full Unicode support
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'charset': 'utf8mb4',
         },
     }
 }
