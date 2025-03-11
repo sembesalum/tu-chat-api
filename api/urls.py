@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (ChatUsersListView, DeleteMessageView, FollowGroupView, GetMessagesView, LeadersView, LogoutUser, NotificationList, ProductCreateView, ProductDeleteView, ProductMarkAsSoldView, ProductUpdateView,RegisterUser, LoginUser, RequestPasswordReset, ResetPassword, SendDirectMessageView, SendMessageView, UniversityList, CampusList, CourseList, 
+from .views import (ChatUsersListView, DeleteMessageView, FollowGroupView, GetMessagesView, LeadersView, LogoutUser, NotificationList, ProductCreateView, ProductDeleteView, ProductListByCategoryView, ProductMarkAsSoldView, ProductUpdateView,RegisterUser, LoginUser, RequestPasswordReset, ResetPassword, SendDirectMessageView, SendMessageView, UniversityList, CampusList, CourseList, 
                     AddMaterial, MaterialList, EventList, BlogList, UserListView, UserProfileUpdateView, UserProfileView,CreateMessageView,
     MessageListView,
     CreateCommunityView,
@@ -65,6 +65,7 @@ urlpatterns = [
     # e-commerce
     path('products/add/', ProductCreateView.as_view(), name='product-add'),
     path('products/', ProductCreateView.as_view(), name='list_product'),
+    path('products/<str:category>/', ProductListByCategoryView.as_view(), name='products_by_category'),
     path('products/<int:pk>/delete/', ProductDeleteView.as_view(), name='product_delete'),
     path('products/<int:pk>/update/', ProductUpdateView.as_view(), name='product_update'),
     path('products/<int:pk>/mark-as-sold/', ProductMarkAsSoldView.as_view(), name='product_mark_as_sold'),

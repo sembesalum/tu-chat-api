@@ -571,7 +571,24 @@ class ProductCreateView(APIView):
         # Pass request to serializer context
         serializer = ProductSerializer(products, many=True, context={'request': request})
         return Response(serializer.data)
-    
+
+class ProductListByCategoryView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, category):
+        # Validate the category against Product's material_type choices
+        valid_categories = [choice[0] for choice in Product.PRODUCT_TYPE_CHOICES]
+        if category not in valid_categories:
+            return Response(
+                {"error": "Invalid product category"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Filter products by the validated category
+        products = Product.objects.filter(material_type=category)
+        serializer = ProductSerializer(products, many=True, context={'request': request})
+        return Response(serializer.data)
+        
 class ProductMarkAsSoldView(APIView):
     def post(self, request, pk):
         try:
