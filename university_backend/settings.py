@@ -160,7 +160,7 @@ REST_FRAMEWORK = {
 # settings.py
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'materials'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -177,12 +177,9 @@ STORAGES = {
     'default': {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
         'OPTIONS': {
-            'location': 'materials/'  
+            'location': BASE_DIR / 'materials',
         },
-    },
-    'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-    },
+    }
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
