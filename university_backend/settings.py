@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -158,7 +159,8 @@ REST_FRAMEWORK = {
 
 # settings.py
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'materials'  # Ensure 'media' folder exists in your project root
+MEDIA_ROOT = BASE_DIR / 'materials'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 CORS_ALLOW_ALL_ORIGINS = True
 
