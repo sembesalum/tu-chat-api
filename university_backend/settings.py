@@ -158,9 +158,9 @@ REST_FRAMEWORK = {
 
 
 # settings.py
-MEDIA_URL = '/media/'
+MEDIA_URL = '/materials/'
 MEDIA_ROOT = BASE_DIR / 'materials'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'materials')
 
 CORS_ALLOW_ALL_ORIGINS = True
 
