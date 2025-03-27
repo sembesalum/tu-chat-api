@@ -30,7 +30,7 @@ class Material(models.Model):
     MATERIAL_TYPE_CHOICES = [
         ('past_paper', 'Past Paper'),
         ('notes', 'Notes'),
-        ('research', 'Research'),
+        ('test', 'Test'),
         ('timetable', 'Timetable'),
         ('report', 'Report'),
     ]
