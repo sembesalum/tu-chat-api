@@ -610,11 +610,9 @@ class ProductMarkAsSoldView(APIView):
 class ProductUpdateView(APIView):
     permission_classes = [AllowAny]
 
-    def post(self, request, pk):  # Using POST instead of PUT/PATCH
-        try:
-            product = Product.objects.get(pk=pk)
-        except Product.DoesNotExist:
-            return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+    def post(self, request, pk):
+        if request.query_params.get('action') != 'update':
+            return Response({"error": "Missing update action"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if this is an update action
         if request.data.get('_method') != 'UPDATE':
