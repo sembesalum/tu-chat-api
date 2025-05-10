@@ -608,13 +608,28 @@ class ProductMarkAsSoldView(APIView):
 
 
 class ProductUpdateView(APIView):
-    parser_classes = [MultiPartParser, FormParser]  # Essential for file uploads
-    permission_classes = []  # AllowAny is default, can be empty
+    parser_classes = [MultiPartParser, FormParser]
+    permission_classes = []  # Open access (we'll handle auth manually)
+    
+    def put(self, request, pk):
+        """
+        Handle PUT requests for product updates
+        """
+        return self.handle_update(request, pk)
+    
+    def patch(self, request, pk):
+        """
+        Handle PATCH requests for product updates
+        """
+        return self.handle_update(request, pk)
     
     def post(self, request, pk):
         """
-        Handle product updates via POST request
+        Handle POST requests for product updates
         """
+        return self.handle_update(request, pk)
+    
+    def handle_update(self, request, pk):
         try:
             product = Product.objects.get(pk=pk)
         except ObjectDoesNotExist:
@@ -627,20 +642,19 @@ class ProductUpdateView(APIView):
         user_id = request.data.get('user_id')
         if not user_id or int(user_id) != product.user.id:
             return Response(
-                {"error": "You don't have permission to update this product."}, 
+                {"error": "Unauthorized - You don't own this product."}, 
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Define allowed fields that can be updated
+        # Define allowed fields
         allowed_fields = [
             'title', 'feature1', 'feature2', 'feature3',
-            'feature4', 'warranty', 'price', 'material_type',
-            'image1', 'image2', 'image3', 'image4'
+            'feature4', 'warranty', 'price', 'material_type'
         ]
 
         # Update regular fields
         for field in allowed_fields:
-            if field in request.data and field not in ['image1', 'image2', 'image3', 'image4']:
+            if field in request.data:
                 setattr(product, field, request.data[field])
 
         # Handle image updates
@@ -666,7 +680,7 @@ class ProductUpdateView(APIView):
             )
         except Exception as e:
             return Response(
-                {"error": f"Failed to update product: {str(e)}"},
+                {"error": f"Update failed: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
