@@ -610,7 +610,7 @@ class ProductMarkAsSoldView(APIView):
 class ProductUpdateView(APIView):
     permission_classes = [AllowAny]
 
-    def put(self, request, pk):
+    def patch(self, request, pk):  # Changed from put to patch
         try:
             product = Product.objects.get(pk=pk)
         except Product.DoesNotExist:
@@ -619,14 +619,15 @@ class ProductUpdateView(APIView):
         # Create a mutable copy of request data
         data = request.data.copy()
 
-        # Verify user ownership (if needed)
-        user_id = data.get('user_id')  # From Flutter request
-        if user_id:
-            if str(product.user.id) != user_id:
-                return Response({"error": "You don't have permission to update this product."}, 
-                              status=status.HTTP_403_FORBIDDEN)
+        # Verify user ownership
+        user_id = data.get('user_id')
+        if user_id and str(product.user.id) != user_id:
+            return Response(
+                {"error": "You don't have permission to update this product."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
-        # Handle images separately
+        # Handle images
         images = {
             'image1': request.FILES.get('image1'),
             'image2': request.FILES.get('image2'),
@@ -634,22 +635,26 @@ class ProductUpdateView(APIView):
             'image4': request.FILES.get('image4'),
         }
 
-        # Add images to the data dictionary if they exist
+        # Prepare data for update
         for key, file in images.items():
             if file:
                 data[key] = file
-                # Clear the existing image if new one is provided
-                setattr(product, key, None)
+                setattr(product, key, None)  # Clear existing image if new one provided
 
-        # Print the received data for debugging
+        # Debugging
         print("Update data received:", data)
 
-        # Serialize data and include the request in the context
-        serializer = ProductSerializer(product, data=data, partial=True, context={'request': request})
+        # Update product
+        serializer = ProductSerializer(
+            product, 
+            data=data, 
+            partial=True, 
+            context={'request': request}
+        )
+        
         if serializer.is_valid():
-            # Save the validated data
             updated_product = serializer.save()
-
+            
             # Save images if provided
             for key, file in images.items():
                 if file:
@@ -657,10 +662,9 @@ class ProductUpdateView(APIView):
                     updated_product.save()
 
             return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            # Log errors for debugging
-            print(serializer.errors)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        print(serializer.errors)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ProductDeleteView(APIView):
     def post(self, request, pk):
