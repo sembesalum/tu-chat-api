@@ -613,44 +613,32 @@ class ProductUpdateView(APIView):
 
     def put(self, request, pk):
         try:
-            # Get the existing product
+            # Get existing product
             product = Product.objects.get(pk=pk)
             
-            # Create a copy of the existing data to modify
+            # Create mutable copy of request data
             data = request.data.copy()
             
-            # Ensure user is maintained
+            # Ensure required fields are maintained
             if 'user' not in data:
                 data['user'] = product.user.id
             
+            # Handle images - keep existing if not provided
+            image_fields = ['image1', 'image2', 'image3', 'image4']
+            for field in image_fields:
+                if field not in data:
+                    data[field] = getattr(product, field)
+            
             # Delete the existing product
             product.delete()
-            
-            # Handle images separately (same as create view)
-            images = {
-                'image1': request.FILES.get('image1'),
-                'image2': request.FILES.get('image2'),
-                'image3': request.FILES.get('image3'),
-                'image4': request.FILES.get('image4'),
-            }
-            
-            # Add images to data if they exist
-            for key, file in images.items():
-                if file:
-                    data[key] = file
             
             # Create new product with updated data
             serializer = ProductSerializer(data=data, context={'request': request})
             if serializer.is_valid():
                 new_product = serializer.save()
                 
-                # Save images if provided
-                for key, file in images.items():
-                    if file:
-                        setattr(new_product, key, file)
-                        new_product.save()
-                
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
+                # Return the created product data
+                return Response(serializer.data, status=status.HTTP_200_OK)
             
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             

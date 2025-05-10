@@ -167,10 +167,10 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = [
-            'id', 'material_type', 'title', 'feature1', 'feature2', 'feature3',
-            'feature4', 'warranty', 'price', 'image1', 'image2', 'image3', 'image4', 'user', 'user_id', 'username'
-        ]
+        fields = '__all__'
+        extra_kwargs = {
+            'id': {'read_only': False}  # Allow ID to be passed for updates
+        }
 
     def get_image1(self, obj):
         if obj.image1:
@@ -194,6 +194,26 @@ class ProductSerializer(serializers.ModelSerializer):
     
     def get_username(self, obj):
         return obj.user.username  # Retrieve the username from the user related to the product
+    
+    def create(self, validated_data):
+        # Handle image fields explicitly
+        image_fields = ['image1', 'image2', 'image3', 'image4']
+        images = {}
+        
+        for field in image_fields:
+            if field in validated_data:
+                images[field] = validated_data.pop(field, None)
+        
+        # Create the product
+        product = super().create(validated_data)
+        
+        # Set image fields after creation
+        for field, value in images.items():
+            if value:
+                setattr(product, field, value)
+                product.save()
+        
+        return product
 
 # class PersonalMessageSerializer(serializers.ModelSerializer):
 #     class Meta:
