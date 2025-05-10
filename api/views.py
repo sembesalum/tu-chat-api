@@ -24,6 +24,8 @@ from .serializers import (ChatUserSerializer, NotificationSerializer, PersonalMe
                           MaterialSerializer, EventSerializer, BlogSerializer, 
                           UserSerializer, UserProfileSerializer,MessageSerializer, CommunitySerializer, GroupSerializer, UserGroupSerializer, LeadersSerializer)
 
+from rest_framework.parsers import MultiPartParser, FormParser
+
 # User registration view
 class RegisterUser(APIView):
     permission_classes = [AllowAny]
@@ -606,24 +608,37 @@ class ProductMarkAsSoldView(APIView):
 
 
 class ProductUpdateView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
     permission_classes = [AllowAny]
     
-    def post(self, request, pk):
+    def put(self, request, pk):  # Change to PUT for updates
         try:
             product = Product.objects.get(pk=pk)
         except Product.DoesNotExist:
             return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        user_id = request.data.get('user_id')  # Extract user_id from the request
-        if product.user.id != user_id:
-            return Response({"error": "You are not authorized to update this product."}, status=status.HTTP_403_FORBIDDEN)
+        # Authorization check
+        user_id = request.data.get('user_id')
+        if str(product.user.id) != str(user_id):
+            return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
 
-        # Update fields passed in request.data
-        for field, value in request.data.items():
-            if field not in ['user_id']:  # Exclude user_id from updates
-                setattr(product, field, value)
+        # Update fields
+        update_fields = ['title', 'feature1', 'feature2', 'feature3', 
+                        'feature4', 'warranty', 'price', 'material_type']
+        
+        for field in update_fields:
+            if field in request.data:
+                setattr(product, field, request.data[field])
+
+        # Handle image updates
+        for i in range(1, 5):
+            image_field = f'image{i}'
+            if image_field in request.FILES:
+                setattr(product, image_field, request.FILES[image_field])
+
         product.save()
         return Response({"detail": "Product updated successfully."}, status=status.HTTP_200_OK)
+
 
 
 
