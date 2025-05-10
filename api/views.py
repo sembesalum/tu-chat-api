@@ -610,8 +610,8 @@ class ProductMarkAsSoldView(APIView):
 class ProductUpdateView(APIView):
     parser_classes = [MultiPartParser, FormParser]
     permission_classes = []  # Open access with manual auth check
-    
-    def put(self, request, pk):
+
+    def put(self, request, pk):  # Explicit PUT method handler
         """
         Handle product updates via PUT method with manual authentication
         """
