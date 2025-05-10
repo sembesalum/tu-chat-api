@@ -18,6 +18,8 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 import random
 from django.core.mail import send_mail
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from .models import OTP, Follow, Leaders, Notification, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
 from .serializers import (ChatUserSerializer, NotificationSerializer, PersonalMessageSerializer, ProductSerializer, UniversitySerializer, CampusSerializer, CourseSerializer, 
@@ -606,24 +608,67 @@ class ProductMarkAsSoldView(APIView):
 
 
 class ProductUpdateView(APIView):
-    permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser]  # Essential for file uploads
+    permission_classes = []  # AllowAny is default, can be empty
     
     def post(self, request, pk):
+        """
+        Handle product updates via POST request
+        """
         try:
             product = Product.objects.get(pk=pk)
-        except Product.DoesNotExist:
-            return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+        except ObjectDoesNotExist:
+            return Response(
+                {"error": "Product not found."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-        user_id = request.data.get('user_id')  # Extract user_id from the request
-        if product.user.id != user_id:
-            return Response({"error": "You are not authorized to update this product."}, status=status.HTTP_403_FORBIDDEN)
+        # Authorization check via user_id
+        user_id = request.data.get('user_id')
+        if not user_id or int(user_id) != product.user.id:
+            return Response(
+                {"error": "You don't have permission to update this product."}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
 
-        # Update fields passed in request.data
-        for field, value in request.data.items():
-            if field not in ['user_id']:  # Exclude user_id from updates
-                setattr(product, field, value)
-        product.save()
-        return Response({"detail": "Product updated successfully."}, status=status.HTTP_200_OK)
+        # Define allowed fields that can be updated
+        allowed_fields = [
+            'title', 'feature1', 'feature2', 'feature3',
+            'feature4', 'warranty', 'price', 'material_type',
+            'image1', 'image2', 'image3', 'image4'
+        ]
+
+        # Update regular fields
+        for field in allowed_fields:
+            if field in request.data and field not in ['image1', 'image2', 'image3', 'image4']:
+                setattr(product, field, request.data[field])
+
+        # Handle image updates
+        for i in range(1, 5):
+            image_field = f'image{i}'
+            if image_field in request.FILES:
+                # Delete old image if exists
+                old_image = getattr(product, image_field)
+                if old_image:
+                    old_image.delete(save=False)
+                setattr(product, image_field, request.FILES[image_field])
+
+        try:
+            product.save()
+            return Response(
+                {
+                    "detail": "Product updated successfully.",
+                    "product_id": product.id,
+                    "title": product.title,
+                    "price": str(product.price)
+                },
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to update product: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 
