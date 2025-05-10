@@ -24,9 +24,6 @@ from .serializers import (ChatUserSerializer, NotificationSerializer, PersonalMe
                           MaterialSerializer, EventSerializer, BlogSerializer, 
                           UserSerializer, UserProfileSerializer,MessageSerializer, CommunitySerializer, GroupSerializer, UserGroupSerializer, LeadersSerializer)
 
-from rest_framework.parsers import MultiPartParser, FormParser
-from django.core.exceptions import ObjectDoesNotExist
-
 # User registration view
 class RegisterUser(APIView):
     permission_classes = [AllowAny]
@@ -609,61 +606,24 @@ class ProductMarkAsSoldView(APIView):
 
 
 class ProductUpdateView(APIView):
-    parser_classes = [MultiPartParser, FormParser]
-    permission_classes = [AllowAny]  # Require authentication
+    permission_classes = [AllowAny]
     
-    def put(self, request, pk):
+    def post(self, request, pk):
         try:
             product = Product.objects.get(pk=pk)
-        except ObjectDoesNotExist:
-            return Response(
-                {"error": "Product not found."}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Authorization check
-        if request.user != product.user:
-            return Response(
-                {"error": "You don't have permission to update this product."}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
+        user_id = request.data.get('user_id')  # Extract user_id from the request
+        if product.user.id != user_id:
+            return Response({"error": "You are not authorized to update this product."}, status=status.HTTP_403_FORBIDDEN)
 
-        # Update text fields
-        update_fields = [
-            'title', 'feature1', 'feature2', 'feature3',
-            'feature4', 'warranty', 'price', 'material_type'
-        ]
-        
-        for field in update_fields:
-            if field in request.data:
-                setattr(product, field, request.data[field])
-
-        # Handle image updates
-        for i in range(1, 5):
-            image_field = f'image{i}'
-            if image_field in request.FILES:
-                # Delete old image if exists
-                old_image = getattr(product, image_field)
-                if old_image:
-                    old_image.delete(save=False)  # Don't save yet
-                setattr(product, image_field, request.FILES[image_field])
-
-        try:
-            product.save()
-            return Response(
-                {
-                    "detail": "Product updated successfully.",
-                    "product_id": product.id,
-                    "title": product.title,
-                    "price": str(product.price)
-                },
-                status=status.HTTP_200_OK
-            )
-        except Exception as e:
-            return Response(
-                {"error": f"Failed to update product: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Update fields passed in request.data
+        for field, value in request.data.items():
+            if field not in ['user_id']:  # Exclude user_id from updates
+                setattr(product, field, value)
+        product.save()
+        return Response({"detail": "Product updated successfully."}, status=status.HTTP_200_OK)
 
 
 
