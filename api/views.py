@@ -608,90 +608,59 @@ class ProductMarkAsSoldView(APIView):
 
 
 class ProductUpdateView(APIView):
-    parser_classes = [MultiPartParser, FormParser]
-    permission_classes = []  # Open access with manual auth check
+    permission_classes = [AllowAny]
 
-    def put(self, request, pk):  # Explicit PUT method handler
-        """
-        Handle product updates via PUT method with manual authentication
-        """
+    def put(self, request, pk):
         try:
             product = Product.objects.get(pk=pk)
         except Product.DoesNotExist:
-            return Response(
-                {"error": "Product not found."}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Manual authentication check
-        user_id = request.data.get('user_id')
-        if not user_id:
-            return Response(
-                {"error": "user_id is required for authentication."}, 
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+        # Create a mutable copy of request data
+        data = request.data.copy()
 
-        try:
-            user = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return Response(
-                {"error": "Invalid user_id."}, 
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+        # Verify user ownership (if needed)
+        user_id = data.get('user_id')  # From Flutter request
+        if user_id:
+            if str(product.user.id) != user_id:
+                return Response({"error": "You don't have permission to update this product."}, 
+                              status=status.HTTP_403_FORBIDDEN)
 
-        # Ownership verification
-        if product.user != user:
-            return Response(
-                {"error": "Unauthorized - You don't own this product."}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
+        # Handle images separately
+        images = {
+            'image1': request.FILES.get('image1'),
+            'image2': request.FILES.get('image2'),
+            'image3': request.FILES.get('image3'),
+            'image4': request.FILES.get('image4'),
+        }
 
-        # Update fields
-        update_fields = [
-            'title', 'feature1', 'feature2', 'feature3',
-            'feature4', 'warranty', 'price', 'material_type'
-        ]
-        
-        updated = False
-        for field in update_fields:
-            if field in request.data:
-                setattr(product, field, request.data[field])
-                updated = True
+        # Add images to the data dictionary if they exist
+        for key, file in images.items():
+            if file:
+                data[key] = file
+                # Clear the existing image if new one is provided
+                setattr(product, key, None)
 
-        # Handle images
-        for i in range(1, 5):
-            image_field = f'image{i}'
-            if image_field in request.FILES:
-                old_image = getattr(product, image_field)
-                if old_image:
-                    old_image.delete(save=False)
-                setattr(product, image_field, request.FILES[image_field])
-                updated = True
+        # Print the received data for debugging
+        print("Update data received:", data)
 
-        if not updated:
-            return Response(
-                {"error": "No valid fields provided for update"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Serialize data and include the request in the context
+        serializer = ProductSerializer(product, data=data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            # Save the validated data
+            updated_product = serializer.save()
 
-        try:
-            product.save()
-            return Response(
-                {
-                    "detail": "Product updated successfully",
-                    "product_id": product.id,
-                    "title": product.title,
-                    "price": str(product.price),
-                    "updated_fields": [k for k in request.data.keys() if k in update_fields] +
-                                      [k for k in request.FILES.keys()]
-                },
-                status=status.HTTP_200_OK
-            )
-        except Exception as e:
-            return Response(
-                {"error": f"Update failed: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            # Save images if provided
+            for key, file in images.items():
+                if file:
+                    setattr(updated_product, key, file)
+                    updated_product.save()
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            # Log errors for debugging
+            print(serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ProductDeleteView(APIView):
     def post(self, request, pk):
