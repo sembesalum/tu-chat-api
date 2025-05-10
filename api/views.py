@@ -611,21 +611,36 @@ class ProductUpdateView(APIView):
     parser_classes = [MultiPartParser, FormParser]
     permission_classes = []  # Open access with manual auth check
     
-    def post(self, request, pk):
+    def put(self, request, pk):
         """
-        Handle product updates
+        Handle product updates via PUT method with manual authentication
         """
         try:
             product = Product.objects.get(pk=pk)
-        except ObjectDoesNotExist:
+        except Product.DoesNotExist:
             return Response(
                 {"error": "Product not found."}, 
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Authorization check
+        # Manual authentication check
         user_id = request.data.get('user_id')
-        if not user_id or int(user_id) != product.user.id:
+        if not user_id:
+            return Response(
+                {"error": "user_id is required for authentication."}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "Invalid user_id."}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        # Ownership verification
+        if product.user != user:
             return Response(
                 {"error": "Unauthorized - You don't own this product."}, 
                 status=status.HTTP_403_FORBIDDEN
@@ -637,9 +652,11 @@ class ProductUpdateView(APIView):
             'feature4', 'warranty', 'price', 'material_type'
         ]
         
+        updated = False
         for field in update_fields:
             if field in request.data:
                 setattr(product, field, request.data[field])
+                updated = True
 
         # Handle images
         for i in range(1, 5):
@@ -649,15 +666,24 @@ class ProductUpdateView(APIView):
                 if old_image:
                     old_image.delete(save=False)
                 setattr(product, image_field, request.FILES[image_field])
+                updated = True
+
+        if not updated:
+            return Response(
+                {"error": "No valid fields provided for update"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             product.save()
             return Response(
                 {
-                    "detail": "Product updated successfully.",
+                    "detail": "Product updated successfully",
                     "product_id": product.id,
                     "title": product.title,
-                    "price": str(product.price)
+                    "price": str(product.price),
+                    "updated_fields": [k for k in request.data.keys() if k in update_fields] +
+                                      [k for k in request.FILES.keys()]
                 },
                 status=status.HTTP_200_OK
             )
