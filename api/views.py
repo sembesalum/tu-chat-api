@@ -610,14 +610,18 @@ class ProductMarkAsSoldView(APIView):
 class ProductUpdateView(APIView):
     permission_classes = [AllowAny]
 
-    def patch(self, request, pk):  # Changed from put to patch
+    def post(self, request, pk):  # Using POST instead of PUT/PATCH
         try:
             product = Product.objects.get(pk=pk)
         except Product.DoesNotExist:
             return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Create a mutable copy of request data
+        # Check if this is an update action
+        if request.data.get('_method') != 'UPDATE':
+            return Response({"error": "Invalid action."}, status=status.HTTP_400_BAD_REQUEST)
+
         data = request.data.copy()
+        data.pop('_method', None)  # Remove the method indicator
 
         # Verify user ownership
         user_id = data.get('user_id')
@@ -635,27 +639,21 @@ class ProductUpdateView(APIView):
             'image4': request.FILES.get('image4'),
         }
 
-        # Prepare data for update
         for key, file in images.items():
             if file:
                 data[key] = file
-                setattr(product, key, None)  # Clear existing image if new one provided
+                setattr(product, key, None)
 
-        # Debugging
-        print("Update data received:", data)
-
-        # Update product
         serializer = ProductSerializer(
             product, 
             data=data, 
-            partial=True, 
+            partial=True,
             context={'request': request}
         )
         
         if serializer.is_valid():
             updated_product = serializer.save()
             
-            # Save images if provided
             for key, file in images.items():
                 if file:
                     setattr(updated_product, key, file)
@@ -663,7 +661,6 @@ class ProductUpdateView(APIView):
 
             return Response(serializer.data, status=status.HTTP_200_OK)
         
-        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ProductDeleteView(APIView):
