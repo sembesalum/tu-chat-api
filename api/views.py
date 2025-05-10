@@ -609,27 +609,12 @@ class ProductMarkAsSoldView(APIView):
 
 class ProductUpdateView(APIView):
     parser_classes = [MultiPartParser, FormParser]
-    permission_classes = []  # Open access (we'll handle auth manually)
-    
-    def put(self, request, pk):
-        """
-        Handle PUT requests for product updates
-        """
-        return self.handle_update(request, pk)
-    
-    def patch(self, request, pk):
-        """
-        Handle PATCH requests for product updates
-        """
-        return self.handle_update(request, pk)
+    permission_classes = []  # We handle auth manually
     
     def post(self, request, pk):
         """
-        Handle POST requests for product updates
+        Handle product updates via POST request
         """
-        return self.handle_update(request, pk)
-    
-    def handle_update(self, request, pk):
         try:
             product = Product.objects.get(pk=pk)
         except ObjectDoesNotExist:
@@ -683,7 +668,6 @@ class ProductUpdateView(APIView):
                 {"error": f"Update failed: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
 
 
 class ProductDeleteView(APIView):
