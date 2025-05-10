@@ -608,22 +608,23 @@ class ProductMarkAsSoldView(APIView):
 
 
 # views.py
+# views.py
 class ProductUpdateView(APIView):
     permission_classes = [AllowAny]
 
-    def post(self, request, pk):
-        # Check for update action in both query params and data
-        if not (request.query_params.get('action') == 'update' or 
-                request.data.get('action') == 'update'):
-            return Response({"error": "Update action required"}, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request):
+        # Get product ID from request data
+        product_id = request.data.get('product_id')
+        if not product_id:
+            return Response({"error": "Product ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            product = Product.objects.get(pk=pk)
+            product = Product.objects.get(pk=product_id)
         except Product.DoesNotExist:
             return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
 
         data = request.data.copy()
-        data.pop('action', None)  # Remove action parameter
+        data.pop('product_id', None)  # Remove product_id from data
 
         # Verify user ownership
         user_id = data.get('user_id')
