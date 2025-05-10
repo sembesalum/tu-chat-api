@@ -609,26 +609,53 @@ class ProductMarkAsSoldView(APIView):
 
 # views.py
 class ProductUpdateView(APIView):
-    permission_classes = [AllowAny]  # No authentication required
+    permission_classes = [AllowAny]
 
     def put(self, request, pk):
         try:
+            # Get the existing product
             product = Product.objects.get(pk=pk)
+            
+            # Create a copy of the existing data to modify
+            data = request.data.copy()
+            
+            # Ensure user is maintained
+            if 'user' not in data:
+                data['user'] = product.user.id
+            
+            # Delete the existing product
+            product.delete()
+            
+            # Handle images separately (same as create view)
+            images = {
+                'image1': request.FILES.get('image1'),
+                'image2': request.FILES.get('image2'),
+                'image3': request.FILES.get('image3'),
+                'image4': request.FILES.get('image4'),
+            }
+            
+            # Add images to data if they exist
+            for key, file in images.items():
+                if file:
+                    data[key] = file
+            
+            # Create new product with updated data
+            serializer = ProductSerializer(data=data, context={'request': request})
+            if serializer.is_valid():
+                new_product = serializer.save()
+                
+                # Save images if provided
+                for key, file in images.items():
+                    if file:
+                        setattr(new_product, key, file)
+                        new_product.save()
+                
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
         except Product.DoesNotExist:
             return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = ProductSerializer(
-            product,
-            data=request.data,
-            partial=True,
-            context={'request': request}
-        )
-
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ProductDeleteView(APIView):
     def post(self, request, pk):
