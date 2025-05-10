@@ -610,57 +610,33 @@ class ProductMarkAsSoldView(APIView):
 # views.py
 # views.py
 class ProductUpdateView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]  # Require authentication
 
-    def post(self, request):
-        # Get product ID from request data
-        product_id = request.data.get('product_id')
-        if not product_id:
-            return Response({"error": "Product ID is required"}, status=status.HTTP_400_BAD_REQUEST)
-
+    def put(self, request, pk):
         try:
-            product = Product.objects.get(pk=product_id)
+            product = Product.objects.get(pk=pk)
         except Product.DoesNotExist:
             return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        data = request.data.copy()
-        data.pop('product_id', None)  # Remove product_id from data
-
-        # Verify user ownership
-        user_id = data.get('user_id')
-        if user_id and str(product.user.id) != user_id:
+        # Verify ownership
+        if product.user != request.user:
             return Response(
-                {"error": "Permission denied"}, 
+                {"error": "You don't own this product"},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Handle image updates
-        images = {}
-        for i in range(1, 5):
-            image_key = f'image{i}'
-            if image_key in request.FILES:
-                images[image_key] = request.FILES[image_key]
-                setattr(product, image_key, None)  # Clear existing image
-
         serializer = ProductSerializer(
             product,
-            data=data,
+            data=request.data,
             partial=True,
             context={'request': request}
         )
 
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        updated_product = serializer.save()
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
         
-        # Save new images
-        for key, file in images.items():
-            if file:
-                setattr(updated_product, key, file)
-                updated_product.save()
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ProductDeleteView(APIView):
     def post(self, request, pk):
