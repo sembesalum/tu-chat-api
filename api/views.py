@@ -608,22 +608,14 @@ class ProductMarkAsSoldView(APIView):
 
 
 # views.py
-# views.py
 class ProductUpdateView(APIView):
-    permission_classes = [IsAuthenticated]  # Require authentication
+    permission_classes = [AllowAny]  # No authentication required
 
     def put(self, request, pk):
         try:
             product = Product.objects.get(pk=pk)
         except Product.DoesNotExist:
             return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Verify ownership
-        if product.user != request.user:
-            return Response(
-                {"error": "You don't own this product"},
-                status=status.HTTP_403_FORBIDDEN
-            )
 
         serializer = ProductSerializer(
             product,
