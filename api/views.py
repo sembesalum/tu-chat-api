@@ -609,35 +609,48 @@ class ProductMarkAsSoldView(APIView):
 
 class ProductUpdateView(APIView):
     parser_classes = [MultiPartParser, FormParser]
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # Require authentication
     
-    def put(self, request, pk):  # Change to PUT for updates
+    def put(self, request, pk):
         try:
             product = Product.objects.get(pk=pk)
         except Product.DoesNotExist:
             return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Authorization check
-        user_id = request.data.get('user_id')
-        if str(product.user.id) != str(user_id):
+        # Authorization check - compare request user with product owner
+        if request.user != product.user:
             return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
 
         # Update fields
         update_fields = ['title', 'feature1', 'feature2', 'feature3', 
                         'feature4', 'warranty', 'price', 'material_type']
         
+        data = request.data.dict()  # Convert QueryDict to regular dict
         for field in update_fields:
-            if field in request.data:
-                setattr(product, field, request.data[field])
+            if field in data:
+                setattr(product, field, data[field])
 
         # Handle image updates
         for i in range(1, 5):
             image_field = f'image{i}'
             if image_field in request.FILES:
+                # Delete old image if exists
+                old_image = getattr(product, image_field)
+                if old_image:
+                    old_image.delete()
                 setattr(product, image_field, request.FILES[image_field])
 
-        product.save()
-        return Response({"detail": "Product updated successfully."}, status=status.HTTP_200_OK)
+        try:
+            product.save()
+            return Response(
+                {"detail": "Product updated successfully.", "product_id": product.id},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 

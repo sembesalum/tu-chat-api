@@ -67,7 +67,7 @@ urlpatterns = [
     path('products/', ProductCreateView.as_view(), name='list_product'),
     path('products/<str:category>/', ProductListByCategoryView.as_view(), name='products_by_category'),
     path('products/<int:pk>/delete/', ProductDeleteView.as_view(), name='product_delete'),
-    path('products/<int:pk>/update/', ProductUpdateView.as_view(), name='product_update'),
+    path('products/<int:pk>/', ProductUpdateView.as_view(), name='product-update'),
     path('products/<int:pk>/mark-as-sold/', ProductMarkAsSoldView.as_view(), name='product_mark_as_sold'),
     
     # Notification
