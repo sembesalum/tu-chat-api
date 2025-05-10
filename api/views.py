@@ -611,7 +611,7 @@ class ProductMarkAsSoldView(APIView):
 class ProductUpdateView(APIView):
     permission_classes = [AllowAny]
 
-    def put(self, request, pk):
+    def put(self, request, pk, format=None):
         try:
             # Get existing product
             product = Product.objects.get(pk=pk)
@@ -619,15 +619,17 @@ class ProductUpdateView(APIView):
             # Create mutable copy of request data
             data = request.data.copy()
             
-            # Ensure required fields are maintained
+            # Preserve user if not provided
             if 'user' not in data:
                 data['user'] = product.user.id
             
-            # Handle images - keep existing if not provided
+            # Handle image fields - keep existing if not provided
             image_fields = ['image1', 'image2', 'image3', 'image4']
             for field in image_fields:
                 if field not in data:
-                    data[field] = getattr(product, field)
+                    existing_image = getattr(product, field)
+                    if existing_image:
+                        data[field] = existing_image.url if hasattr(existing_image, 'url') else str(existing_image)
             
             # Delete the existing product
             product.delete()
@@ -637,13 +639,20 @@ class ProductUpdateView(APIView):
             if serializer.is_valid():
                 new_product = serializer.save()
                 
-                # Return the created product data
+                # Handle file uploads if any
+                for field in image_fields:
+                    if field in request.FILES:
+                        setattr(new_product, field, request.FILES[field])
+                        new_product.save()
+                
                 return Response(serializer.data, status=status.HTTP_200_OK)
             
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
         except Product.DoesNotExist:
             return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ProductDeleteView(APIView):
     def post(self, request, pk):
