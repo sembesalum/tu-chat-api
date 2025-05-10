@@ -609,11 +609,11 @@ class ProductMarkAsSoldView(APIView):
 
 class ProductUpdateView(APIView):
     parser_classes = [MultiPartParser, FormParser]
-    permission_classes = []  # We handle auth manually
+    permission_classes = []  # Open access with manual auth check
     
     def post(self, request, pk):
         """
-        Handle product updates via POST request
+        Handle product updates
         """
         try:
             product = Product.objects.get(pk=pk)
@@ -623,7 +623,7 @@ class ProductUpdateView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Authorization check via user_id
+        # Authorization check
         user_id = request.data.get('user_id')
         if not user_id or int(user_id) != product.user.id:
             return Response(
@@ -631,22 +631,20 @@ class ProductUpdateView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Define allowed fields
-        allowed_fields = [
+        # Update fields
+        update_fields = [
             'title', 'feature1', 'feature2', 'feature3',
             'feature4', 'warranty', 'price', 'material_type'
         ]
-
-        # Update regular fields
-        for field in allowed_fields:
+        
+        for field in update_fields:
             if field in request.data:
                 setattr(product, field, request.data[field])
 
-        # Handle image updates
+        # Handle images
         for i in range(1, 5):
             image_field = f'image{i}'
             if image_field in request.FILES:
-                # Delete old image if exists
                 old_image = getattr(product, image_field)
                 if old_image:
                     old_image.delete(save=False)
@@ -668,7 +666,6 @@ class ProductUpdateView(APIView):
                 {"error": f"Update failed: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
 
 class ProductDeleteView(APIView):
     def post(self, request, pk):
