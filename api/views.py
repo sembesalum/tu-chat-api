@@ -607,59 +607,59 @@ class ProductMarkAsSoldView(APIView):
         return Response({"detail": "Product marked as sold successfully."}, status=status.HTTP_200_OK)
 
 
+# views.py
 class ProductUpdateView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request, pk):
-        if request.query_params.get('action') != 'update':
-            return Response({"error": "Missing update action"}, status=status.HTTP_400_BAD_REQUEST)
+        # Check for update action in both query params and data
+        if not (request.query_params.get('action') == 'update' or 
+                request.data.get('action') == 'update'):
+            return Response({"error": "Update action required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check if this is an update action
-        if request.data.get('_method') != 'UPDATE':
-            return Response({"error": "Invalid action."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
 
         data = request.data.copy()
-        data.pop('_method', None)  # Remove the method indicator
+        data.pop('action', None)  # Remove action parameter
 
         # Verify user ownership
         user_id = data.get('user_id')
         if user_id and str(product.user.id) != user_id:
             return Response(
-                {"error": "You don't have permission to update this product."},
+                {"error": "Permission denied"}, 
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Handle images
-        images = {
-            'image1': request.FILES.get('image1'),
-            'image2': request.FILES.get('image2'),
-            'image3': request.FILES.get('image3'),
-            'image4': request.FILES.get('image4'),
-        }
-
-        for key, file in images.items():
-            if file:
-                data[key] = file
-                setattr(product, key, None)
+        # Handle image updates
+        images = {}
+        for i in range(1, 5):
+            image_key = f'image{i}'
+            if image_key in request.FILES:
+                images[image_key] = request.FILES[image_key]
+                setattr(product, image_key, None)  # Clear existing image
 
         serializer = ProductSerializer(
-            product, 
-            data=data, 
+            product,
+            data=data,
             partial=True,
             context={'request': request}
         )
-        
-        if serializer.is_valid():
-            updated_product = serializer.save()
-            
-            for key, file in images.items():
-                if file:
-                    setattr(updated_product, key, file)
-                    updated_product.save()
 
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        updated_product = serializer.save()
         
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Save new images
+        for key, file in images.items():
+            if file:
+                setattr(updated_product, key, file)
+                updated_product.save()
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class ProductDeleteView(APIView):
     def post(self, request, pk):
