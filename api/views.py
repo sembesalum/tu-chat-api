@@ -607,23 +607,25 @@ class ProductMarkAsSoldView(APIView):
         return Response({"detail": "Product marked as sold successfully."}, status=status.HTTP_200_OK)
 
 
-# views.py
 class ProductUpdateView(APIView):
     permission_classes = [AllowAny]
 
     def put(self, request, pk, format=None):
+        """
+        Handle PUT requests to update a product by completely replacing it
+        """
         try:
             # Get existing product
             product = Product.objects.get(pk=pk)
             
             # Create mutable copy of request data
-            data = request.data.copy()
+            data = request.data.dict() if hasattr(request.data, 'dict') else request.data.copy()
             
-            # Preserve user if not provided
+            # Ensure required fields are maintained
             if 'user' not in data:
                 data['user'] = product.user.id
             
-            # Handle image fields - keep existing if not provided
+            # Handle image fields - maintain existing if not provided
             image_fields = ['image1', 'image2', 'image3', 'image4']
             for field in image_fields:
                 if field not in data:
