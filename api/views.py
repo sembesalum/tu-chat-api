@@ -612,7 +612,7 @@ class ProductUpdateView(APIView):
 
     def put(self, request, pk, format=None):
         """
-        Handle PUT requests to update a product by completely replacing it
+        Handle PUT requests to update a product while maintaining existing images
         """
         try:
             # Get existing product
@@ -625,28 +625,19 @@ class ProductUpdateView(APIView):
             if 'user' not in data:
                 data['user'] = product.user.id
             
-            # Handle image fields - maintain existing if not provided
+            # Maintain all existing image fields - ignore any image updates in request
             image_fields = ['image1', 'image2', 'image3', 'image4']
             for field in image_fields:
-                if field not in data:
-                    existing_image = getattr(product, field)
-                    if existing_image:
-                        data[field] = existing_image.url if hasattr(existing_image, 'url') else str(existing_image)
+                existing_image = getattr(product, field)
+                if existing_image:
+                    data[field] = existing_image
+                elif field in data:
+                    del data[field]  # Remove image field if it was provided but product has no existing image
             
-            # Delete the existing product
-            product.delete()
-            
-            # Create new product with updated data
-            serializer = ProductSerializer(data=data, context={'request': request})
+            # Serialize with existing product instance for update
+            serializer = ProductSerializer(product, data=data, partial=False, context={'request': request})
             if serializer.is_valid():
-                new_product = serializer.save()
-                
-                # Handle file uploads if any
-                for field in image_fields:
-                    if field in request.FILES:
-                        setattr(new_product, field, request.FILES[field])
-                        new_product.save()
-                
+                updated_product = serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
             
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -878,21 +869,25 @@ class UserProfileUpdateView(APIView):
             return None
 
     def put(self, request, *args, **kwargs):
-        """Handle the PUT request to update the user's profile"""
-        user_id = kwargs.get('user_id')  # Get user_id from the URL
-
-        # Check if the user profile exists
+        user_id = kwargs.get('user_id')
         user_profile = self.get_object(user_id)
+        
         if user_profile is None:
             return Response({'detail': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if the requesting user owns this profile
+        if request.user.id != user_profile.user.id:
+            return Response({'detail': 'Not authorized to update this profile.'}, 
+                            status=status.HTTP_403_FORBIDDEN)
 
-        # Serialize the incoming data
-        serializer = UserProfileSerializer(user_profile, data=request.data, partial=True)
+        serializer = UserProfileSerializer(
+            user_profile, 
+            data=request.data, 
+            partial=True
+        )
+        
         if serializer.is_valid():
-            serializer.save()  # Save the updated profile
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-
-        # Log the errors for debugging
-        print(serializer.errors)
-
+            
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

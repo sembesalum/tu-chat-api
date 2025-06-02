@@ -157,21 +157,18 @@ class LeadersSerializer(serializers.ModelSerializer):
         return None
     
 class ProductSerializer(serializers.ModelSerializer):
-    # Use SerializerMethodField to generate full URLs for image fields
     image1 = serializers.SerializerMethodField()
     image2 = serializers.SerializerMethodField()
     image3 = serializers.SerializerMethodField()
     image4 = serializers.SerializerMethodField()
-    user_id = serializers.IntegerField(source='user.id', read_only=True)  # Add this line to get the user's ID
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
     username = serializers.SerializerMethodField()
-
     class Meta:
         model = Product
         fields = '__all__'
         extra_kwargs = {
             'id': {'read_only': False}  # Allow ID to be passed for updates
         }
-
     def get_image1(self, obj):
         if obj.image1:
             return self.context['request'].build_absolute_uri(obj.image1.url)
@@ -203,10 +200,8 @@ class ProductSerializer(serializers.ModelSerializer):
         for field in image_fields:
             if field in validated_data:
                 images[field] = validated_data.pop(field, None)
-        
         # Create the product
         product = super().create(validated_data)
-        
         # Set image fields after creation
         for field, value in images.items():
             if value:
