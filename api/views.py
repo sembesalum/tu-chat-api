@@ -660,38 +660,6 @@ class ProductDeleteView(APIView):
 
         product.delete()
         return Response({"detail": "Product deleted successfully."}, status=status.HTTP_200_OK)
-
-
-# class ProductActionView(APIView):
-#     def post(self, request, pk, action):
-#         try:
-#             product = Product.objects.get(pk=pk)
-#         except Product.DoesNotExist:
-#             return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
-
-#         user_id = request.data.get('user_id')  # Extract user_id from the request
-#         if product.user.id != user_id:
-#             return Response({"error": "You are not authorized to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-
-#         # Perform action based on the 'action' parameter
-#         if action == "delete":
-#             product.delete()
-#             return Response({"detail": "Product deleted successfully."}, status=status.HTTP_200_OK)
-
-#         elif action == "update":
-#             # Assuming fields are passed in request.data for update
-#             for field, value in request.data.items():
-#                 setattr(product, field, value)
-#             product.save()
-#             return Response({"detail": "Product updated successfully."}, status=status.HTTP_200_OK)
-
-#         elif action == "mark-as-sold":
-#             product.is_sold = True
-#             product.save()
-#             return Response({"detail": "Product marked as sold successfully."}, status=status.HTTP_200_OK)
-
-#         return Response({"error": "Invalid action."}, status=status.HTTP_400_BAD_REQUEST)
-
     
 
 class SendDirectMessageView(APIView):
@@ -859,35 +827,39 @@ class UserListView(View):
         return JsonResponse(list(profiles), safe=False, status=200)
 
 class UserProfileUpdateView(APIView):
-    permission_classes = [AllowAny]
-
+    permission_classes = [AllowAny]  # No authentication required
+    
     def get_object(self, user_id):
-        """Get the user profile for the provided user_id"""
+        """Get user profile or return 404 if not found"""
         try:
             return UserProfile.objects.get(user_id=user_id)
         except UserProfile.DoesNotExist:
-            return None
+            raise Http404
 
-    def put(self, request, *args, **kwargs):
-        user_id = kwargs.get('user_id')
-        user_profile = self.get_object(user_id)
-        
-        if user_profile is None:
-            return Response({'detail': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
-        
-        # Check if the requesting user owns this profile
-        if request.user.id != user_profile.user.id:
-            return Response({'detail': 'Not authorized to update this profile.'}, 
-                            status=status.HTTP_403_FORBIDDEN)
-
-        serializer = UserProfileSerializer(
-            user_profile, 
-            data=request.data, 
-            partial=True
-        )
-        
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+    def put(self, request, user_id, *args, **kwargs):
+        try:
+            profile = self.get_object(user_id)
+            serializer = UserProfileSerializer(
+                profile, 
+                data=request.data, 
+                partial=True
+            )
             
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            
+            return Response(
+                {"status": "success", "data": serializer.data},
+                status=status.HTTP_200_OK
+            )
+            
+        except Http404:
+            return Response(
+                {"status": "error", "message": "User profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
