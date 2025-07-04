@@ -115,6 +115,34 @@ class Blog(models.Model):
 
     def __str__(self):
         return self.title
+    
+    @property
+    def comment_count(self):
+        return self.comments.count()
+
+    
+class BlogComment(models.Model):
+    blog = models.ForeignKey(Blog, on_delete=models.CASCADE, related_name='comments')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    likes = models.ManyToManyField(User, related_name='liked_comments', blank=True)
+    parent_comment = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Comment by {self.user.username} on {self.blog.title}"
+
+    @property
+    def total_likes(self):
+        return self.likes.count()
+
+    @property
+    def reply_count(self):
+        return self.replies.count()
 
 
 class UserProfile(models.Model):

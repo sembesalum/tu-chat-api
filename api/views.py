@@ -1,5 +1,5 @@
 from django.db import IntegrityError
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views import View
 from rest_framework.views import APIView
@@ -21,10 +21,13 @@ from django.core.mail import send_mail
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
-from .models import OTP, Follow, Leaders, Notification, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
-from .serializers import (ChatUserSerializer, NotificationSerializer, PersonalMessageSerializer, ProductSerializer, UniversitySerializer, CampusSerializer, CourseSerializer, 
+from .models import OTP, BlogComment, Follow, Leaders, Notification, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
+from .serializers import (BlogCommentSerializer, ChatUserSerializer, NotificationSerializer, PersonalMessageSerializer, ProductSerializer, UniversitySerializer, CampusSerializer, CourseSerializer, 
                           MaterialSerializer, EventSerializer, BlogSerializer, 
                           UserSerializer, UserProfileSerializer,MessageSerializer, CommunitySerializer, GroupSerializer, UserGroupSerializer, LeadersSerializer)
+
+
+
 
 # User registration view
 class RegisterUser(APIView):
@@ -863,3 +866,92 @@ class UserProfileUpdateView(APIView):
                 {"status": "error", "message": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+class BlogCommentListCreateView(generics.ListCreateAPIView):
+    serializer_class = BlogCommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        blog_id = self.kwargs['blog_id']
+        return BlogComment.objects.filter(blog_id=blog_id, parent_comment__isnull=True)
+
+    def perform_create(self, serializer):
+        blog_id = self.kwargs['blog_id']
+        serializer.save(
+            blog_id=blog_id,
+            user=self.request.user
+        )
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+
+class BlogCommentDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = BlogComment.objects.all()
+    serializer_class = BlogCommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+
+class BlogCommentReplyCreateView(generics.CreateAPIView):
+    serializer_class = BlogCommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return BlogComment.objects.all()
+
+    def perform_create(self, serializer):
+        comment_id = self.kwargs['comment_id']
+        parent_comment = BlogComment.objects.get(id=comment_id)
+        serializer.save(
+            blog=parent_comment.blog,
+            user=self.request.user,
+            parent_comment=parent_comment
+        )
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+
+class BlogCommentLikeToggleView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        comment_id = kwargs.get('comment_id')
+        comment = BlogComment.objects.get(id=comment_id)
+        user = request.user
+
+        if comment.likes.filter(id=user.id).exists():
+            comment.likes.remove(user)
+            action = 'unliked'
+        else:
+            comment.likes.add(user)
+            action = 'liked'
+
+        return Response({
+            'status': 'success',
+            'action': action,
+            'total_likes': comment.total_likes
+        }, status=status.HTTP_200_OK)
+
+
+class BlogCommentRepliesListView(generics.ListAPIView):
+    serializer_class = BlogCommentSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        comment_id = self.kwargs['comment_id']
+        return BlogComment.objects.filter(parent_comment_id=comment_id)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context

@@ -8,7 +8,9 @@ from .views import (ChatUsersListView, DeleteMessageView, FollowGroupView, GetMe
     GroupListView,
     JoinGroupView,
     LeaveGroupView,
-    PromoteUserView,MarkMessageAsReadView, VerifyOTP)
+    PromoteUserView,MarkMessageAsReadView, VerifyOTP, BlogCommentListCreateView, BlogCommentDetailView,
+    BlogCommentReplyCreateView, BlogCommentLikeToggleView,
+    BlogCommentRepliesListView)
 
 urlpatterns = [
     path('register/', RegisterUser.as_view(), name='register'),
@@ -73,4 +75,11 @@ urlpatterns = [
     # Notification
     path('notification/', NotificationList.as_view(), name='list-notifications'),
     path('users/', UserListView.as_view(), name='user-list'),
+    
+    # Blog Comments URLs
+    path('blogs/<int:blog_id>/comments/', BlogCommentListCreateView.as_view(), name='blog-comment-list'),
+    path('comments/<int:pk>/', BlogCommentDetailView.as_view(), name='blog-comment-detail'),
+    path('comments/<int:comment_id>/replies/', BlogCommentReplyCreateView.as_view(), name='blog-comment-reply'),
+    path('comments/<int:comment_id>/like/', BlogCommentLikeToggleView.as_view(), name='blog-comment-like'),
+    path('comments/<int:comment_id>/replies-list/', BlogCommentRepliesListView.as_view(), name='blog-comment-replies-list'),
 ]

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Leaders, Notification, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
+from .models import BlogComment, Leaders, Notification, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
 
 class UniversitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -55,7 +55,7 @@ class BlogSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
     class Meta:
         model = Blog
-        fields = ['id', 'title', 'content', 'date', 'image_url', 'is_breaking_news', 'university_id']
+        fields = ['id', 'title', 'content', 'date', 'image_url', 'is_breaking_news', 'university_id', 'comment_count']
         print(fields[4])
 
     def get_image_url(self, obj):
@@ -63,6 +63,9 @@ class BlogSerializer(serializers.ModelSerializer):
         if obj.image and request:
             return request.build_absolute_uri(obj.image.url)
         return None
+    
+    def get_comment_count(self, obj):
+        return obj.comment_count
     
         
 class UserSerializer(serializers.ModelSerializer):
@@ -235,3 +238,40 @@ class ChatUserSerializer(serializers.Serializer):
     class Meta:
         model = PersonalMessage
         fields = ['username']
+        
+class BlogCommentSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
+    user_profile_picture = serializers.SerializerMethodField()
+    total_likes = serializers.SerializerMethodField()
+    reply_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BlogComment
+        fields = [
+            'id', 'blog', 'user', 'user_name', 'user_profile_picture',
+            'content', 'created_at', 'updated_at', 'total_likes',
+            'reply_count', 'parent_comment', 'is_liked'
+        ]
+        read_only_fields = ['user', 'created_at', 'updated_at']
+
+    def get_user_name(self, obj):
+        return obj.user.username
+
+    def get_user_profile_picture(self, obj):
+        profile = UserProfile.objects.filter(user=obj.user).first()
+        if profile and profile.profile_picture:
+            return profile.profile_picture.url
+        return None
+
+    def get_total_likes(self, obj):
+        return obj.total_likes
+
+    def get_reply_count(self, obj):
+        return obj.reply_count
+
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.likes.filter(id=request.user.id).exists()
+        return False
