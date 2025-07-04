@@ -869,7 +869,7 @@ class UserProfileUpdateView(APIView):
 
 class BlogCommentListCreateView(generics.ListCreateAPIView):
     serializer_class = BlogCommentSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         blog_id = self.kwargs['blog_id']
@@ -891,7 +891,7 @@ class BlogCommentListCreateView(generics.ListCreateAPIView):
 class BlogCommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = BlogComment.objects.all()
     serializer_class = BlogCommentSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [AllowAny]
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -901,7 +901,7 @@ class BlogCommentDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class BlogCommentReplyCreateView(generics.CreateAPIView):
     serializer_class = BlogCommentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         return BlogComment.objects.all()
@@ -922,7 +922,7 @@ class BlogCommentReplyCreateView(generics.CreateAPIView):
 
 
 class BlogCommentLikeToggleView(generics.GenericAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
         comment_id = kwargs.get('comment_id')
@@ -945,7 +945,7 @@ class BlogCommentLikeToggleView(generics.GenericAPIView):
 
 class BlogCommentRepliesListView(generics.ListAPIView):
     serializer_class = BlogCommentSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         comment_id = self.kwargs['comment_id']
