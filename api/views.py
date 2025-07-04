@@ -866,7 +866,6 @@ class UserProfileUpdateView(APIView):
                 {"status": "error", "message": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
 class BlogCommentListCreateView(generics.ListCreateAPIView):
     serializer_class = BlogCommentSerializer
     permission_classes = [AllowAny]
@@ -877,9 +876,10 @@ class BlogCommentListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         blog_id = self.kwargs['blog_id']
+        blog = get_object_or_404(Blog, id=blog_id)
         serializer.save(
-            blog_id=blog_id,
-            user=self.request.user
+            blog=blog,
+            user=self.request.user if self.request.user.is_authenticated else None
         )
 
     def get_serializer_context(self):
