@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (BlockUserView, ChatUsersListView, DeleteMessageView, FollowGroupView, GetMessagesView, LeadersView, LogoutUser, NotificationList, ProductCreateView, ProductDeleteView, ProductListByCategoryView, ProductMarkAsSoldView, ProductUpdateView,RegisterUser, LoginUser, RequestPasswordReset, ResetPassword, SendDirectMessageView, SendMessageView, UnblockUserView, UniversityList, CampusList, CourseList, 
+from .views import (BlockUserView, ChatUsersListView, CheckBlockStatusView, DeleteMessageView, FollowGroupView, GetMessagesView, LeadersView, LogoutUser, NotificationList, ProductCreateView, ProductDeleteView, ProductListByCategoryView, ProductMarkAsSoldView, ProductUpdateView,RegisterUser, LoginUser, RequestPasswordReset, ResetPassword, SendDirectMessageView, SendMessageView, UnblockUserView, UniversityList, CampusList, CourseList, 
                     AddMaterial, MaterialList, EventList, BlogList, UserListView, UserProfileUpdateView, UserProfileView,CreateMessageView,
     MessageListView,
     CreateCommunityView,
@@ -43,6 +43,7 @@ urlpatterns = [
     path('messages/send-direct/<int:user_id>/', SendDirectMessageView.as_view(), name='send_direct_message'),
     path('users/block/', BlockUserView.as_view(), name='block_user'),
     path('users/unblock/', UnblockUserView.as_view(), name='unblock_user'),
+    path('users/check_block_status/', CheckBlockStatusView.as_view(), name='check_block_status'),
     path('groups/<int:group_id>/messages/', MessageListView.as_view(), name='message-list'),
     path('messages/chat-users/<int:user_id>/', ChatUsersListView.as_view(), name='chat_users_list'),
     path('messages/delete/<int:message_id>/', DeleteMessageView.as_view(), name='delete_message'),

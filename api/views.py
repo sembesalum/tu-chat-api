@@ -879,6 +879,39 @@ class UnblockUserView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+
+class CheckBlockStatusView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        """
+        Check if a user is blocked
+        """
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response(
+                {'error': 'User ID is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            target_user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'User not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        is_blocked = BlockedUser.objects.filter(
+            blocker=request.user, blocked=target_user
+        ).exists()
+
+        return Response(
+            {'blocked': is_blocked},
+            status=status.HTTP_200_OK
+        )
+
+
 class GetMessagesView(APIView):
     permission_classes = [AllowAny]  # Allow any user to access this endpoint
 
