@@ -876,16 +876,17 @@ class BlogCommentListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         blog_id = self.kwargs['blog_id']
-        blog = get_object_or_404(Blog, id=blog_id)
-        serializer.save(
-            blog=blog,
-            user=self.request.user if self.request.user.is_authenticated else None
-        )
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
+        try:
+            blog = get_object_or_404(Blog, id=blog_id)
+            serializer.save(
+                blog=blog,
+                user=self.request.user if self.request.user.is_authenticated else None
+            )
+        except Http404:
+            return Response(
+                {'error': 'Blog not found'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class BlogCommentDetailView(generics.RetrieveUpdateDestroyAPIView):
