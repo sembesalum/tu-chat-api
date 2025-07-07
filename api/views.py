@@ -21,7 +21,7 @@ from django.core.mail import send_mail
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
-from .models import OTP, BlogComment, Follow, Leaders, Notification, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
+from .models import OTP, BlockedUser, BlogComment, Follow, Leaders, Notification, PersonalMessage, Product, University, Campus, Course, Material, Event, Blog, UserProfile, Message, Community, Group, UserGroup
 from .serializers import (BlogCommentSerializer, ChatUserSerializer, NotificationSerializer, PersonalMessageSerializer, ProductSerializer, UniversitySerializer, CampusSerializer, CourseSerializer, 
                           MaterialSerializer, EventSerializer, BlogSerializer, 
                           UserSerializer, UserProfileSerializer,MessageSerializer, CommunitySerializer, GroupSerializer, UserGroupSerializer, LeadersSerializer)
@@ -665,45 +665,219 @@ class ProductDeleteView(APIView):
         return Response({"detail": "Product deleted successfully."}, status=status.HTTP_200_OK)
     
 
+# class SendDirectMessageView(APIView):
+#     permission_classes = [AllowAny]
+
+#     def post(self, request, user_id):
+#         """
+#         Send a direct message to another user.
+#         """
+#         print(f"Request data: {request.data}")
+
+#         # The user_id in the URL will be the sender's ID
+#         sender_user_id = user_id
+
+#         try:
+#             sender = User.objects.get(id=sender_user_id)
+#         except User.DoesNotExist:
+#             return Response({'error': 'Sender user not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+#         recipient_id = request.data.get('recipient')
+#         if not recipient_id:
+#             return Response({'error': 'Recipient userID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+#         try:
+#             recipient_user = User.objects.get(id=recipient_id)
+#         except User.DoesNotExist:
+#             return Response({'error': 'Recipient not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+#         if sender.id == recipient_user.id:
+#             return Response({'error': 'Sender and recipient cannot be the same.'}, status=status.HTTP_400_BAD_REQUEST)
+
+#         content = request.data.get('content')
+#         if not content:
+#             return Response({'error': 'Message content is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+#         message = PersonalMessage(sender=sender, recipient=recipient_user, content=content)
+#         message.save()
+
+#         serializer = PersonalMessageSerializer(message)
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 class SendDirectMessageView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request, user_id):
         """
-        Send a direct message to another user.
+        Send a direct message to another user with block user checks.
         """
-        print(f"Request data: {request.data}")
-
         # The user_id in the URL will be the sender's ID
         sender_user_id = user_id
 
         try:
             sender = User.objects.get(id=sender_user_id)
         except User.DoesNotExist:
-            return Response({'error': 'Sender user not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'error': 'Sender user not found.'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         recipient_id = request.data.get('recipient')
         if not recipient_id:
-            return Response({'error': 'Recipient userID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'Recipient userID is required.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             recipient_user = User.objects.get(id=recipient_id)
         except User.DoesNotExist:
-            return Response({'error': 'Recipient not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'error': 'Recipient not found.'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
 
+        # Check if sender and recipient are the same
         if sender.id == recipient_user.id:
-            return Response({'error': 'Sender and recipient cannot be the same.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'Sender and recipient cannot be the same.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check if recipient has blocked the sender
+        if BlockedUser.objects.filter(
+            blocker=recipient_user, 
+            blocked=sender
+        ).exists():
+            return Response(
+                {
+                    'error': 'You cannot send messages to this user as they have blocked you.'
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Check if sender has blocked the recipient
+        if BlockedUser.objects.filter(
+            blocker=sender, 
+            blocked=recipient_user
+        ).exists():
+            return Response(
+                {
+                    'error': 'You have blocked this user. Unblock them to send messages.'
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         content = request.data.get('content')
         if not content:
-            return Response({'error': 'Message content is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'Message content is required.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        message = PersonalMessage(sender=sender, recipient=recipient_user, content=content)
+        # Create and save the message
+        message = PersonalMessage(
+            sender=sender, 
+            recipient=recipient_user, 
+            content=content
+        )
         message.save()
 
         serializer = PersonalMessageSerializer(message)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(
+            serializer.data, 
+            status=status.HTTP_201_CREATED
+        )
 
+
+class BlockUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """
+        Block a user to prevent messaging
+        """
+        blocked_id = request.data.get('user_id')
+        if not blocked_id:
+            return Response(
+                {'error': 'User ID is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            blocked_user = User.objects.get(pk=blocked_id)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'User not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if request.user.id == blocked_user.id:
+            return Response(
+                {'error': 'You cannot block yourself'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create or get existing block
+        block, created = BlockedUser.objects.get_or_create(
+            blocker=request.user,
+            blocked=blocked_user
+        )
+        
+        if created:
+            # Delete any existing messages between these users
+            PersonalMessage.objects.filter(
+                models.Q(sender=request.user, recipient=blocked_user) |
+                models.Q(sender=blocked_user, recipient=request.user)
+            ).delete()
+            
+            return Response(
+                {'message': f'You have blocked {blocked_user.username}'},
+                status=status.HTTP_201_CREATED
+            )
+        else:
+            return Response(
+                {'message': f'You have already blocked {blocked_user.username}'},
+                status=status.HTTP_200_OK
+            )
+
+class UnblockUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """
+        Unblock a user to allow messaging again
+        """
+        blocked_id = request.data.get('user_id')
+        if not blocked_id:
+            return Response(
+                {'error': 'User ID is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            blocked_user = User.objects.get(pk=blocked_id)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'User not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        try:
+            block = BlockedUser.objects.get(
+                blocker=request.user, 
+                blocked=blocked_user
+            )
+            block.delete()
+            return Response(
+                {'message': f'You have unblocked {blocked_user.username}'},
+                status=status.HTTP_200_OK
+            )
+        except BlockedUser.DoesNotExist:
+            return Response(
+                {'error': 'This user is not blocked'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class GetMessagesView(APIView):
     permission_classes = [AllowAny]  # Allow any user to access this endpoint
