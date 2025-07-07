@@ -791,7 +791,7 @@ class SendDirectMessageView(APIView):
 
 
 class BlockUserView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         """
@@ -842,7 +842,7 @@ class BlockUserView(APIView):
             )
 
 class UnblockUserView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         """
